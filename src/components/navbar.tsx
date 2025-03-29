@@ -59,7 +59,7 @@ const Navbar = () => {
             </ul>
         </div>
         <div className="navbar-end">
-
+            <Link href="/auth/signin" className="btn btn-sm btn-ghost">Masuk Pengguna</Link>
         </div>
     </div>
 }
