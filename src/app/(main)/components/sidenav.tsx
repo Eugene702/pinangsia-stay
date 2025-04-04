@@ -15,14 +15,14 @@ const Sidenav = () => {
 
         if(menu.children === undefined){
             return <li key={index}>
-                <Link href={menu.url} className={`flex items-center ${menu.url.startsWith(pathname) ? 'menu-active' : ''}`}>
+                <Link href={menu.url} className={`flex items-center ${pathname.startsWith(menu.url) ? 'menu-active' : ''}`}>
                     { menu.icon }
                     <span>{ menu.text }</span>
                 </Link>
             </li>
         }else{
             return <li key={index}>
-                <details open={menu.children.some(child => child.url.startsWith(pathname))}>
+                <details open={menu.children.some(child => pathname.startsWith(child.url))}>
                     <summary>{ menu.text }</summary>
                     <ul>
                         { menu.children.map((child, index) => renderMenu(child, index)) }
