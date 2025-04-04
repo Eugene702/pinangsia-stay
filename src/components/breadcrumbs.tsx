@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-type BreadcrumbsProps = {
+export type BreadcrumbsProps = {
     item: {
         text: string,
         url?: string
