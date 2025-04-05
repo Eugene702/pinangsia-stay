@@ -1,9 +1,21 @@
+"use client"
+
+import { signOut } from "next-auth/react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import React from "react"
 import { IoLogOut, IoSettings } from "react-icons/io5"
 import { RiMenu2Fill } from "react-icons/ri"
 
 const Navbar = () => {
+    const router  = useRouter()
+    const handleOnClickSignOut = async () => {
+        await signOut({
+            redirect: false
+        })
+            .then(() => router.push("/auth"))
+    }
+
     return <div className="navbar bg-base-100 shadow-sm">
         <div className="flex-1">
             <label htmlFor="drawer" className="btn btn-square btn-ghost">
@@ -27,7 +39,7 @@ const Navbar = () => {
                     <span>Pengaturan Akun</span>
                 </Link></li>
                 <li>
-                    <button className="flex items-center gap-2 text-error">
+                    <button className="flex items-center gap-2 text-error" onClick={handleOnClickSignOut}>
                         <IoLogOut />
                         <span>Keluar Akun</span>
                     </button>
