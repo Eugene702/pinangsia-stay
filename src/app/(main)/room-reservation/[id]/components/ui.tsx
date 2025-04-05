@@ -1,5 +1,3 @@
-import Image from "next/image"
-
 const Ui = () => {
     return <div className="card lg:card-side">
         <figure>
