@@ -6,31 +6,40 @@ import Link from "next/link"
 import { useState } from "react"
 import { FaTrash } from "react-icons/fa"
 import { FaPencil } from "react-icons/fa6"
+import { DELETE, GetPayload } from "../action"
+import Image from "next/image"
+import { getCldImageUrl } from "next-cloudinary"
+import { showToast } from "@/utils/toast"
 
 const ConfirmationModal = dynamic(() => import('@/components/confirmationModal'))
-const Table = () => {
+const Table = ({ data }: { data: GetPayload[] }) => {
     const [confirmationModal, setConfirmationModal] = useState<ConfirmationModalProps>({
         isOpen: false,
         title: "",
         isLoading: false,
         message: "",
-        onConfirm: () => {},
+        onConfirm: () => { },
         onClose: () => setConfirmationModal(prev => ({ ...prev, isOpen: false, isLoading: false }))
     })
 
-    const handleOnClickDeleteUser = (index: number) => {
+    const handleOnClickDeleteUser = (data: GetPayload) => {
         setConfirmationModal(prev => ({
             ...prev,
             isOpen: true,
             title: "Hapus Pengguna",
-            message: `Apakah kamu yakin ingin menghapus pengguna ${index}?`,
-            onConfirm: () => handleOnConfirmDeleteUser(index)
+            message: `Apakah kamu yakin ingin menghapus pengguna ${data.name}?`,
+            onConfirm: () => handleOnConfirmDeleteUser(data)
         }))
     }
 
-    const handleOnConfirmDeleteUser = async (index: number) => {
+    const handleOnConfirmDeleteUser = async (data: GetPayload) => {
         setConfirmationModal(prev => ({ ...prev, isLoading: true }))
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        const response = await DELETE(data.id)
+        if(response.name === "SUCCESS"){
+            showToast("success", response.message)
+        }else{
+            showToast("error", response.message)
+        }
         setConfirmationModal(prev => ({ ...prev, isLoading: false, isOpen: false }))
     }
 
@@ -49,35 +58,42 @@ const Table = () => {
             </thead>
 
             <tbody>
-                <tr>
-                    <td>
-                        <div className="avatar">
-                            <div className="mask mask-squircle w-24">
-                                <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+                {
+                    data.map((e, index) => <tr key={index}>
+                        <td>
+                            <div className="avatar">
+                                <div className="mask mask-squircle w-24">
+                                    <Image
+                                        src={e.photo ? getCldImageUrl({ src: e.photo }) : "/images/logo.png"}
+                                        width={0}
+                                        height={0}
+                                        sizes="100vw"
+                                        alt={`Foto ${e.name}`} />
+                                </div>
                             </div>
-                        </div>
-                    </td>
-                    <td>Alvin</td>
-                    <td>alvin@gmail.com</td>
-                    <td>082xxx</td>
-                    <td>Jl. Meneteng Atas</td>
-                    <td>Tamu</td>
-                    <td>
-                        <div className="flex items-center gap-2">
-                            <div className="tooltip" data-tip="Edit Pengguna">
-                                <Link href={`/users/asas`} className="btn btn-circle btn-sm btn-ghost">
-                                    <FaPencil />
-                                </Link>
-                            </div>
+                        </td>
+                        <td>{ e.name }</td>
+                        <td>{ e.email }</td>
+                        <td>{ e.telp }</td>
+                        <td>{ e.address }</td>
+                        <td>{ e.role === "CUSTOMER" ? "Tamu" : e.role === "RECIPIENT" ? "Resipsionis" : "Manajer" }</td>
+                        <td>
+                            <div className="flex items-center gap-2">
+                                <div className="tooltip" data-tip="Edit Pengguna">
+                                    <Link href={`/users/${e.id}`} className="btn btn-circle btn-sm btn-ghost">
+                                        <FaPencil />
+                                    </Link>
+                                </div>
 
-                            <div className="tooltip tooltip-left" data-tip="Hapus Pengguna">
-                                <button className="btn btn-circle btn-error btn-sm btn-ghost text-error hover:text-white" onClick={() => handleOnClickDeleteUser(1)}>
-                                    <FaTrash />
-                                </button>
+                                <div className="tooltip tooltip-left" data-tip="Hapus Pengguna">
+                                    <button className="btn btn-circle btn-error btn-sm btn-ghost text-error hover:text-white" onClick={() => handleOnClickDeleteUser(e)}>
+                                        <FaTrash />
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    </td>
-                </tr>
+                        </td>
+                    </tr>)
+                }
             </tbody>
         </table>
 

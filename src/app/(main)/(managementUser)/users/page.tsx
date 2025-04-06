@@ -1,19 +1,27 @@
+import { SearchParams } from "@/types/global"
 import { Metadata } from "next"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { FaPlus } from "react-icons/fa"
-
+import { get } from "./action"
 
 const Breadcrumbs = dynamic(() => import('@/components/breadcrumbs'))
 const SearchInput = dynamic(() => import('@/components/searchInput'))
 const Pagination = dynamic(() => import('@/components/pagination'))
 const Table = dynamic(() => import('./components/table'))
+const Error = dynamic(() => import('@/components/error'))
 
 export const metadata: Metadata = {
     title: "Daftar Pengguna",
 }
 
-const page = () => {
+const page = async ({ searchParams }: { searchParams: SearchParams }) => {
+    const { name, message, data } = await get({ searchParams })
+
+    if(name === "SERVER_ERROR"){
+        return <Error message={message!} />
+    }
+
     return <main>
         <div className="flex justify-between items-center">
             <h1 className="text-xl font-bold">Daftar Pengguna</h1>
@@ -40,10 +48,10 @@ const page = () => {
 
         <div className="mt-5 card bgwhite shadow">
             <div className="card-body">
-                <Table />
+                <Table data={data![0]} />
                 <Pagination
-                    hasNext={true}
-                    hasPrev={true} />
+                    hasNext={data![1].nextPage != null}
+                    hasPrev={data![1].previousPage != null} />
             </div>
         </div>
     </main>

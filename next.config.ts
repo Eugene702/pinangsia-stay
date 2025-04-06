@@ -7,7 +7,14 @@ const nextConfig: NextConfig = {
       destination: "/auth/signin",
       permanent: false
     }
-  ]
+  ],
+  images: {
+    remotePatterns: [
+      {
+        hostname: 'res.cloudinary.com'
+      }
+    ]
+  }
 };
 
 export default nextConfig;

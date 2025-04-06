@@ -4,11 +4,19 @@ import Image from "next/image"
 import Link from "next/link"
 import { menuList, MenuListType } from "./menuList"
 import { usePathname } from "next/navigation"
+import { useSession } from "next-auth/react"
 
 const Sidenav = () => {
+    const { data: session, status } = useSession()
     const pathname = usePathname()
 
     const renderMenu = (menu: MenuListType, index: number) => {
+        if(menu.role){
+            if(!menu.role.includes(session!.user.role!)){
+                return null
+            }
+        }
+
         if(menu.isTitle){
             return <li className="menu-title" key={index}>{ menu.text }</li>
         }
@@ -46,7 +54,9 @@ const Sidenav = () => {
                     <span className="text-lg font-bold">Pinangsia Stay</span>
                 </div>
             </li>
-            { menuList.map((menu, index) => renderMenu(menu, index)) }
+            {
+                status != "loading" ? status === "authenticated" ? menuList.map((menu, index) => renderMenu(menu, index)) : <li>Anda belum login!</li> : <li><div className="loading"></div></li>
+            }
         </ul>
     </div>
 }

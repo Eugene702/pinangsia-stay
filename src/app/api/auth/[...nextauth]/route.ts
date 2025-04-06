@@ -1,6 +1,17 @@
-import { Prisma } from "@prisma/client";
-import NextAuth, { NextAuthOptions } from "next-auth";
+import { $Enums, Prisma } from "@prisma/client";
+import NextAuth, { NextAuthOptions, Session } from "next-auth";
 import CredentialProvider from "next-auth/providers/credentials"
+
+declare module "next-auth" {
+    interface Session {
+        user: {
+            name?: string | null;
+            email?: string | null;
+            image?: string | null;
+            role: $Enums.Role;
+        };
+    }
+}
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -24,10 +35,20 @@ export const authOptions: NextAuthOptions = {
         async signIn() {
             return true
         },
-        async session({ session }) {
+        async session({ session, token }) {
+            session.user.role = token.sub as $Enums.Role
             return session
         },
-        async jwt({ token }) {
+        async jwt({ token, user }) {
+            if(user){
+                token = {
+                    email: user.email,
+                    name: user.name,
+                    picture: user.image,
+                    sub: (user as unknown as { role: $Enums.Role }).role
+                }
+            }
+
             return token
         }
     },
