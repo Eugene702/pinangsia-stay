@@ -1,17 +1,25 @@
+import { SearchParams } from "@/types/global"
 import { Metadata } from "next"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { FaPlus } from "react-icons/fa"
+import { GET } from "./action"
 
 const Header = dynamic(() => import("@/components/header"))
 const SearchInput = dynamic(() => import("@/components/searchInput"))
 const Table = dynamic(() => import('./components/table'))
+const Error = dynamic(() => import('@/components/error'))
 
 export const metadata: Metadata = {
     title: "Daftar Kategori Kamar"
 }
 
-const page = () => {
+const page = async ({ searchParams }: { searchParams: SearchParams }) => {
+    const response = await GET({ searchParams })
+    if(response.name === "SERVER_ERROR"){
+        return <Error message={response.message!} />
+    }
+
     return <main>
         <Header
             title="Daftar Kategori Kamar"
@@ -36,7 +44,7 @@ const page = () => {
 
         <div className="mt-5 card bg-white shadow">
             <div className="card-body">
-                <Table />
+                <Table roomCategory={response.data!} />
             </div>
         </div>
     </main>

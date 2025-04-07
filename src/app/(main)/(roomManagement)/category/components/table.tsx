@@ -6,33 +6,39 @@ import Link from "next/link"
 import { useState } from "react"
 import { FaTrash } from "react-icons/fa"
 import { FaPencil } from "react-icons/fa6"
+import { DELETE, GetPayload } from "../action"
+import Image from "next/image"
+import { getCldImageUrl } from "next-cloudinary"
+import { converToRupiah } from "@/utils/utils"
 
 const Pagination = dynamic(() => import('@/components/pagination'))
 const ConfirmationModal = dynamic(() => import('@/components/confirmationModal'))
 
-const Table = () => {
+const Table = ({ roomCategory }: { roomCategory: GetPayload }) => {
     const [confirmationModal, setConfirmationModal] = useState<ConfirmationModalProps>({
         isOpen: false,
         title: "",
         message: "",
         isLoading: false,
-        onClose: () => setConfirmationModal(prev => ({...prev, isOpen: false, isLoading: false})),
-        onConfirm: () => {}
+        onClose: () => setConfirmationModal(prev => ({ ...prev, isOpen: false, isLoading: false })),
+        onConfirm: () => { }
     })
 
-    const handleOnClickDelete = (index: number) => {
+    const handleOnClickDelete = (item: GetPayload['0'][number]) => {
         setConfirmationModal(prev => ({
             ...prev,
             isOpen: true,
             title: "Hapus Kategori Kamar",
-            message: `Apakah kamu yakin ingin menghapus kategori kamar ${index}?`,
+            message: `Apakah kamu yakin ingin menghapus kategori kamar ${item.name}?`,
             isLoading: false,
-            onConfirm: () => handleOnConfirmDelete(index)
+            onConfirm: () => handleOnConfirmDelete(item)
         }))
     }
 
-    const handleOnConfirmDelete = (index: number) => {
-        
+    const handleOnConfirmDelete = async (item: GetPayload[0][number]) => {
+        setConfirmationModal(prev => ({ ...prev, isLoading: true }))
+        await DELETE(item.id)
+        setConfirmationModal(prev => ({ ...prev, isLoading: false, isOpen: false }))
     }
 
     return <>
@@ -47,38 +53,45 @@ const Table = () => {
             </thead>
 
             <tbody>
-                <tr>
-                    <td>
-                        <div className="avatar">
-                            <div className="mask mask-squircle w-24">
-                                <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+                {
+                    roomCategory[0].map((e, index) => <tr key={index}>
+                        <td>
+                            <div className="avatar">
+                                <div className="mask mask-squircle w-24">
+                                    <Image
+                                        src={getCldImageUrl({ src: e.photo })}
+                                        width={0}
+                                        height={0}
+                                        alt={`Foto Kategori Kamar ${e.name}`}
+                                        sizes="100vw" />
+                                </div>
                             </div>
-                        </div>
-                    </td>
-                    <td>Super</td>
-                    <td>Rp. 200.000,00</td>
-                    <td>
-                        <div className="flex items-center gap-2">
-                            <div className="tooltip" data-tip="Edit Kategori Kamar">
-                                <Link href={`/category/asas`} className="btn btn-circle btn-sm btn-ghost">
-                                    <FaPencil />
-                                </Link>
-                            </div>
+                        </td>
+                        <td>{ e.name }</td>
+                        <td>{ converToRupiah(Number(e.price)) }</td>
+                        <td>
+                            <div className="flex items-center gap-2">
+                                <div className="tooltip" data-tip="Edit Kategori Kamar">
+                                    <Link href={`/category/${e.id}`} className="btn btn-circle btn-sm btn-ghost">
+                                        <FaPencil />
+                                    </Link>
+                                </div>
 
-                            <div className="tooltip" data-tip="Hapus Kategori Kamar">
-                                <button className="btn btn-circle btn-error btn-sm btn-ghost text-error hover:text-white" onClick={() => handleOnClickDelete(1)}>
-                                    <FaTrash />
-                                </button>
+                                <div className="tooltip" data-tip="Hapus Kategori Kamar">
+                                    <button className="btn btn-circle btn-error btn-sm btn-ghost text-error hover:text-white" onClick={() => handleOnClickDelete(e)}>
+                                        <FaTrash />
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    </td>
-                </tr>
+                        </td>
+                    </tr>)
+                }
             </tbody>
         </table>
 
         <Pagination
-            hasNext={false}
-            hasPrev={false} />
+            hasNext={roomCategory[1].nextPage != null}
+            hasPrev={roomCategory[1].previousPage != null} />
 
         <ConfirmationModal
             {...confirmationModal} />
