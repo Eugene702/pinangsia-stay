@@ -1,6 +1,8 @@
 "use client"
 
 import { signOut, useSession } from "next-auth/react"
+import { getCldImageUrl } from "next-cloudinary"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { CSSProperties } from "react"
@@ -30,11 +32,11 @@ const Navbar = () => {
                         <button className="btn btn-ghost min-w-28" popoverTarget="profileDropdown" style={{ anchorName: "--profile-dropdown" } as CSSProperties}>
                             <div className="avatar">
                                 <div className="w-8 rounded-full">
-                                    <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+                                    <Image src={session.user.image ? getCldImageUrl({ src: session.user.image }) : "/images/logo.png"} width={0} height={0} alt={`Foto profil ${session.user.name}`} />
                                 </div>
                             </div>
 
-                            <span>Eugene Feilian Putra Rangga</span>
+                            <span>{ session.user.name }</span>
                         </button>
 
                         <ul className="dropdown dropdown-bottom menu w-52 rounded-box bg-base-100 shadow-sm" popover="auto" id="profileDropdown" style={{ positionAnchor: "--profile-dropdown" } as React.CSSProperties}>

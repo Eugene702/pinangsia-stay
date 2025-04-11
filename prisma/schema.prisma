@@ -30,6 +30,8 @@ model User{
   role Role
   createdAt DateTime @db.Timestamp(3)
   deletedAt DateTime? @db.Timestamp(3)
+
+  booking Booking[]
 }
 
 model RoomCategory{
@@ -61,11 +63,21 @@ model Booking{
   userId String
   roomCategoryId String
   bookingTime DateTime @db.Timestamp(3)
-  paidOff BigInt?
+  paidOff DateTime?
   createdAt DateTime @db.Timestamp(3)
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   roomCategory RoomCategory @relation(fields: [roomCategoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   roomAllocation RoomAllocation?
+  transaction Transaction?
+}
+
+model Transaction{
+  id String @id
+  transactionId String
+  transactionMethodId String
+  
+  booking Booking @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model RoomAllocation{
