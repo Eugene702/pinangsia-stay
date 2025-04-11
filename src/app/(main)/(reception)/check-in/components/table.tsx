@@ -4,32 +4,44 @@ import { ConfirmationModalProps } from "@/components/confirmationModal"
 import dynamic from "next/dynamic"
 import { useState } from "react"
 import { FaSignInAlt } from "react-icons/fa"
+import { GetResponseType, STORE } from "../action"
+import Image from "next/image"
+import { getCldImageUrl } from "next-cloudinary"
+import { formatDate } from "@/utils/moment"
+import { showToast } from "@/utils/toast"
 
 const Pagination = dynamic(() => import('@/components/pagination'))
 const ConfirmationModal = dynamic(() => import('@/components/confirmationModal'))
 
-const Table = () => {
+const Table = ({ data }: { data: GetResponseType }) => {
     const [confirmationModal, setConfirmationModal] = useState<ConfirmationModalProps>({
         isLoading: false,
         isOpen: false,
         message: "",
         onClose: () => setConfirmationModal(prev => ({ ...prev, isOpen: false, isLoading: false })),
-        onConfirm: () => {},
+        onConfirm: () => { },
         title: ""
     })
 
-    const handleOnClickCheckIn = (index: number) => {
+    const handleOnClickCheckIn = (data: GetResponseType['booking'][number]) => {
         setConfirmationModal(prev => ({
             ...prev,
             title: "Konfirmasi Check In",
-            message: `Apakah anda yakin ingin check in tamu ini?`,
+            message: `Apakah anda yakin ingin check in tamu ${data.user.name} ini?`,
             isOpen: true,
-            onConfirm: () => handleOnConfirmCheckIn(index),
+            onConfirm: () => handleOnConfirmCheckIn(data),
         }))
     }
 
-    const handleOnConfirmCheckIn = (index: number) => {
-
+    const handleOnConfirmCheckIn = async (data: GetResponseType['booking'][number]) => {
+        setConfirmationModal(prev => ({ ...prev, isLoading: true }))
+        const response = await STORE(data)
+        setConfirmationModal(prev => ({ ...prev, isLoading: false, isOpen: false }))
+        if(response.name === "SUCCESS"){
+            showToast("success", "Berhasil check in tamu!")
+        }else{
+            showToast("error", response.message!)
+        }
     }
 
     return <>
@@ -37,7 +49,6 @@ const Table = () => {
             <thead>
                 <tr>
                     <th>Foto Tamu</th>
-                    <th>Nomor Identitas Tamu</th>
                     <th>Nama Tamu</th>
                     <th>Kamar Yang Dipesan</th>
                     <th>Jam Reservasi</th>
@@ -47,34 +58,40 @@ const Table = () => {
             </thead>
 
             <tbody>
-                <tr>
-                    <td>
-                        <div className="avatar">
-                            <div className="mask mask-squircle w-24">
-                                <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+                {
+                    data.booking.map((e, index) => <tr key={index}>
+                        <td>
+                            <div className="avatar">
+                                <div className="mask mask-squircle w-24">
+                                    <Image
+                                        src={e.user.photo ? getCldImageUrl({ src: e.user.photo }) : "/images/logo.png"}
+                                        width={0}
+                                        height={0}
+                                        alt={`Foto pengguna ${e.user.name}`}
+                                        sizes="100vw" />
+                                </div>
                             </div>
-                        </div>
-                    </td>
-                    <td>123456789</td>
-                    <td>Alvin</td>
-                    <td>101</td>
-                    <td>12:00</td>
-                    <td>Lunas</td>
-                    <td>
-                        <div className="flex items-center gap-2">
-                            <button className="btn btn-ghost btn-sm btn-circle" onClick={() => handleOnClickCheckIn(0)}>
-                                <FaSignInAlt />
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+                        </td>
+                        <td>{ e.user.name }</td>
+                        <td>{ e.roomCategory.name }</td>
+                        <td>{ formatDate(e.bookingTime, "DD MMMM YYYY") }</td>
+                        <td>{ e.paidOff ? formatDate(e.paidOff, "DD MMMM YYYY") : "Belum terbayar!" }</td>
+                        <td>
+                            <div className="flex items-center gap-2">
+                                <button className="btn btn-ghost btn-sm btn-circle" onClick={() => handleOnClickCheckIn(e)}>
+                                    <FaSignInAlt />
+                                </button>
+                            </div>
+                        </td>
+                    </tr>)
+                }
             </tbody>
         </table>
 
         <ConfirmationModal {...confirmationModal} />
         <Pagination
-            hasNext={false}
-            hasPrev={false} />
+            hasNext={data.pagination.nextPage != null}
+            hasPrev={data.pagination.previousPage != null} />
     </>
 }
 

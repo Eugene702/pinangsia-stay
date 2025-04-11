@@ -105,13 +105,6 @@ export const menuList: MenuListType[] = [
         role: ['CUSTOMER']
     },
     {
-        text: "Transaksi Saya",
-        url: "/my-transaction",
-        icon: <GrTransaction />,
-        isTitle: false,
-        role: ['CUSTOMER']
-    },
-    {
         text: "Laporan",
         url: "/",
         isTitle: true,
