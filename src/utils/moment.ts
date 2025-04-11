@@ -8,3 +8,5 @@ export const getDate = (options?: { fromMidnight?: boolean }) => {
     }
     return date.toDate()
 }
+
+export const formatDate = (date: Date, format: string) => moment(date).tz(TIMEZONE).format(format)
