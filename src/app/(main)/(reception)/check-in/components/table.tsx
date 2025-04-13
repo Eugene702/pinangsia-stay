@@ -38,7 +38,7 @@ const Table = ({ data }: { data: GetResponseType }) => {
         const response = await STORE(data)
         setConfirmationModal(prev => ({ ...prev, isLoading: false, isOpen: false }))
         if(response.name === "SUCCESS"){
-            showToast("success", "Berhasil check in tamu!")
+            showToast("success", `Berhasil check in tamu ${data.user.name} ke kamar ${response.data?.roomId}`, 7000)
         }else{
             showToast("error", response.message!)
         }

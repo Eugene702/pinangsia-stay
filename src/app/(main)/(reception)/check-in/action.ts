@@ -36,9 +36,9 @@ export const GET = async ({ searchParams }: { searchParams: SearchParams }) => {
         const booking = await prisma.$extends(pagination()).booking.paginate({
             where: {
                 NOT: {
-                    paidOff: null
+                    paidOff: null,
                 },
-                roomAllocation: null,
+                roomAllocation:null,
                 OR: [
                     {
                         user: {
@@ -98,11 +98,8 @@ export const STORE = async (data: GetResponseType['booking'][number]) => {
                 roomCategory: {
                     id: data.roomCategory.id
                 },
-                roomAllocationMany: {
-                    some: {
-                        roomAvailability: null
-                    }
-                }
+                roomAvailability: null,
+                deletedAt: null
             },
             select: {
                 no: true
@@ -121,6 +118,11 @@ export const STORE = async (data: GetResponseType['booking'][number]) => {
                 bookingId: data.id,
                 roomId: room.no,
                 checkIn: getDate(),
+                roomAvailability: {
+                    create: {
+                        roomId: room.no
+                    }
+                }
             }
         })
 
