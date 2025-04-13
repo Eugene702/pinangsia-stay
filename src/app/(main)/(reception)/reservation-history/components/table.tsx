@@ -1,36 +1,36 @@
 "use client"
 
 import dynamic from "next/dynamic"
+import { GetResponseType } from "../action"
+import { converToRupiah } from "@/utils/utils"
 
 const Pagination = dynamic(() => import('@/components/pagination'))
-const Table = () => {
+const Table = ({ response }: { response: GetResponseType }) => {
     return <>
         <table className="table table-zebra">
             <thead>
                 <tr>
                     <th>Nomor Pemesanan</th>
+                    <th>Nama Tamu</th>
                     <th>Kategori Kamar</th>
-                    <th>Total Pemesanan</th>
                     <th>Total Harga</th>
-                    <th></th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>123456789</td>
-                    <td>Deluxe Room</td>
-                    <td>2</td>
-                    <td>Rp 1.000.000</td>
-                    <td>
-                        <button className="btn btn-primary btn-sm">Buat Invoice</button>
-                    </td>
-                </tr>
+                {
+                    response.booking.map((e, index) => <tr key={index}>
+                        <td>{ e.id }</td>
+                        <td>{ e.user.name }</td>
+                        <td>{ e.roomCategory.name }</td>
+                        <td>{ converToRupiah(Number(e.roomCategory.price)) }</td>
+                    </tr>)
+                }
             </tbody>
         </table>
 
         <Pagination
-            hasNext={false}
-            hasPrev={false} />
+            hasNext={response.pagination.nextPage != null}
+            hasPrev={response.pagination.previousPage != null} />
     </>
 }
 

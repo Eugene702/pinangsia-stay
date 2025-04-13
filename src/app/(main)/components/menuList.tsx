@@ -103,18 +103,5 @@ export const menuList: MenuListType[] = [
         icon: <FaHistory />,
         isTitle: false,
         role: ['CUSTOMER']
-    },
-    {
-        text: "Laporan",
-        url: "/",
-        isTitle: true,
-        role: ['MANAGER']
-    },
-    {
-        text: "Laporan",
-        url: "/report",
-        icon: <TbReportAnalytics />,
-        isTitle: false,
-        role: ['MANAGER']
-    },
+    }
 ];
