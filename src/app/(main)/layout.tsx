@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic"
 import { ReactNode } from "react"
-import { authOptions } from "../api/auth/[...nextauth]/route"
 import { getServerSession } from "next-auth"
+import { authOptions } from "../api/auth/[...nextauth]/authOptions"
 
 const Sidenav = dynamic(() => import('./components/sidenav'))
 const Navbar = dynamic(() => import('./components/navbar'))

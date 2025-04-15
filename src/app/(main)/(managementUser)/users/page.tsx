@@ -15,8 +15,8 @@ export const metadata: Metadata = {
     title: "Daftar Pengguna",
 }
 
-const page = async ({ searchParams }: { searchParams: SearchParams }) => {
-    const { name, message, data } = await get({ searchParams })
+const page = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
+    const { name, message, data } = await get({ searchParams: await searchParams })
 
     if(name === "SERVER_ERROR"){
         return <Error message={message!} />

@@ -2,7 +2,7 @@
 
 import { useFormik } from "formik"
 import { ChangeEvent } from "react"
-import { mixed, object, ref, Schema, string } from "yup"
+import { mixed, object, ref, string } from "yup"
 import { showToast } from "@/utils/toast"
 import { useRouter } from "next/navigation"
 import { fileToBase64 } from "@/utils/utils"

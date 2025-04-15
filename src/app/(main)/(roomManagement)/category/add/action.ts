@@ -3,7 +3,6 @@
 import cloudinary from "@/utils/cloudinary"
 import { prisma } from "@/utils/database"
 import { getDate } from "@/utils/moment"
-import { UploadApiResponse } from "cloudinary"
 import { revalidatePath } from "next/cache"
 
 export const POST = async (formData: FormData) => {

@@ -1,12 +1,11 @@
 "use client"
 
 import { useFormik } from "formik"
-import Link from "next/link"
 import { object, string } from "yup"
 import { post } from "../action"
 import { signIn } from "next-auth/react"
 import { showToast } from "@/utils/toast"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 export type FormProps = {
     email: string,
@@ -14,7 +13,6 @@ export type FormProps = {
 }
 
 const Form = () => {
-    const searchParams = useSearchParams()
     const router = useRouter()
     const schemaValidation = object().shape({
         email: string().email("Format email tidak benar!").required("Email tidak boleh kosong!"),
@@ -37,7 +35,15 @@ const Form = () => {
                 await signIn("credentials", {
                     ...response.data,
                     redirect: false
-                }).then(() => router.push(searchParams.get("callbackUrl") || "/dashboard"))
+                }).then(() => {
+                    if(response.data!.role === "MANAGER"){
+                        router.push("/dashboard")
+                    }else if(response.data!.role === "RECIPIENT"){
+                        router.push("/check-in")
+                    }else{
+                        router.push("/room-reservation")
+                    }
+                })
             } else if (response.name === "FORM_VALIDATION") {
                 for (const key in response.errors) {
                     setFieldError(key, response.errors[key as keyof FormProps])
@@ -63,7 +69,6 @@ const Form = () => {
 
 
         <div className="flex justify-between">
-            <Link href="/auth/forgot-password" className="link">Lupa kata sandi?</Link>
             <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmitting}>
                 {isSubmitting ? <div className="loading"></div> : null}
                 <span>Masuk</span>

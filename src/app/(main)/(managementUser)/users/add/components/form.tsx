@@ -54,7 +54,7 @@ const Form = () => {
         repeatPassword: string().required("Ulangi kata sandi tidak boleh kosong!").oneOf([ref("password")], "Kata sandi tidak sama!")
     })
 
-    const { values, errors, handleChange, handleSubmit, setFieldError, isSubmitting, setFieldValue, setErrors } = useFormik({
+    const { values, errors, handleChange, handleSubmit, isSubmitting, setFieldValue, setErrors } = useFormik({
         validationSchema: schemaValidation,
         initialValues: {
             photo: null as File | null,

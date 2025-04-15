@@ -3,7 +3,6 @@
 import { prisma } from "@/utils/database"
 import { FormValues } from "./components/form"
 import { genSalt, hash } from "bcrypt"
-import { fileToBase64 } from "@/utils/utils"
 import cloudinary from "@/utils/cloudinary"
 import { UploadApiResponse } from "cloudinary"
 import { getDate } from "@/utils/moment"

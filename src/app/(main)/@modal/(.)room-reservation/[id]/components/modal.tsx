@@ -1,6 +1,6 @@
 "use client"
 
-import { useParams, usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { ReactNode, useEffect, useRef } from "react"
 
 const Modal = ({ children }: { children: ReactNode }) => {

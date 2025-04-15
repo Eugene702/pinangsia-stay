@@ -12,8 +12,9 @@ const Header = dynamic(() => import('@/components/header'))
 const Error = dynamic(() => import('@/components/error'))
 const Pagination = dynamic(() => import('@/components/pagination'))
 
-const page = async ({ searchParams }: { searchParams: SearchParams }) => {
-    const response = await GET({ searchParams })
+const page = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
+    const searchParam = await searchParams
+    const response = await GET({ searchParams: searchParam })
     if (response.name != "SUCCESS") {
         return <Error message={response.name} />
     }

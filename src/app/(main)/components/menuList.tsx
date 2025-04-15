@@ -3,9 +3,7 @@ import { JSX } from "react";
 import { BiSolidCategoryAlt } from "react-icons/bi";
 import { FaHistory, FaUser } from "react-icons/fa";
 import { FaBuildingCircleArrowRight, FaBuildingCircleCheck } from "react-icons/fa6";
-import { GrTransaction } from "react-icons/gr";
 import { MdBedroomChild, MdBedroomParent, MdSpaceDashboard } from "react-icons/md";
-import { TbReportAnalytics } from "react-icons/tb";
 
 export type MenuListType = {
     url: string,

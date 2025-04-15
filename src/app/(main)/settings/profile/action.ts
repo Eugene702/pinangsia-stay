@@ -9,7 +9,18 @@ import { EditFormBiodataType } from "./components/editBiodata"
 import { EditPasswordFormType } from "./components/editPassword"
 import { genSalt, hash } from "bcrypt"
 
-export type GetResponseType = Prisma.UserGetPayload<{}>
+export type GetResponseType = Prisma.UserGetPayload<{
+    select: {
+        address: true,
+        email: true,
+        name: true,
+        photo: true,
+        role: true,
+        telp: true,
+        id: true,
+        password: true,
+    }
+}>
 export const GET = async () => {
     try{
         const session = await getServerSession()
@@ -144,7 +155,7 @@ export const StoreBiodata = async ({ address, email, name, telp }: EditFormBioda
     }
 }
 
-export const PatchPassword = async ({ password, repeatPassword }: EditPasswordFormType) => {
+export const PatchPassword = async ({ password }: EditPasswordFormType) => {
     try{
         const session = await getServerSession()
         if(session == null || session.user === null){
