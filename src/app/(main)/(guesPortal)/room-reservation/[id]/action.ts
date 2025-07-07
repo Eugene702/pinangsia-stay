@@ -179,7 +179,6 @@ export const PATCH = async (storeResponse: StoreResponseType) => {
             const formData = new FormData()
             formData.append("target", `${user.user.telp}|${user.user.name}`)
             formData.append("message", "Pembayaran anda telah berhasil dilakukan! Silahkan cek di aplikasi Pinangsia Stay untuk melihat detail pemesanan anda.")
-            console.log(Object.fromEntries(formData))
 
             const [_updateStatus, _sendWhatsapp] = await Promise.all([
                 await prisma.booking.update({
@@ -197,7 +196,6 @@ export const PATCH = async (storeResponse: StoreResponseType) => {
                 })
             ])
 
-            console.log(await _sendWhatsapp.text())
             revalidatePath("/", "layout")
             return {
                 name: "SUCCESS",
