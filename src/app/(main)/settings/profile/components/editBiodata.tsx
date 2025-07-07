@@ -1,6 +1,6 @@
 "use client"
 
-import { object, string } from "yup"
+import { number, object, string } from "yup"
 import { GetResponseType, StoreBiodata } from "../action"
 import { useFormik } from "formik"
 import { showToast } from "@/utils/toast"
@@ -16,7 +16,7 @@ const EditBiodata = ({ response }: { response: GetResponseType }) => {
     const schema = object().shape({
         name: string().required("Nama lengkap tidak boleh kosong!"),
         email: string().email("Email tidak valid!").required("Email tidak boleh kosong!"),
-        telp: string().required("Telp tidak boleh kosong!"),
+        telp: number().required("Telp tidak boleh kosong!"),
         address: string().required("Alamat tidak boleh kosong!")
     })
 
@@ -53,7 +53,7 @@ const EditBiodata = ({ response }: { response: GetResponseType }) => {
 
         <fieldset className="fieldset">
             <legend className="fieldset-legend">Telp</legend>
-            <input type="number" className="input input-bordered w-full" placeholder="088xxx" name="telp" value={values.telp || ""} onChange={handleChange} />
+            <input type="text" className="input input-bordered w-full" placeholder="088xxx" name="telp" defaultValue={values.telp || ""} onChange={handleChange} />
             <span className="fieldset-label text-error">{errors.telp}</span>
         </fieldset>
 

@@ -87,40 +87,51 @@ export const STORE = async (formData: FormData) => {
             }
         }
 
-        const [booking, createPayment] = await Promise.all([
-            await prisma.booking.create({
-                data: {
-                    userId: user.id,
-                    roomCategoryId: roomCategoryId as string,
-                    bookingTime: new Date(bookingDate as string),
-                    createdAt: getDate()
-                },
-            }),
+        if (user.address === null || user.telp === null) {
+            return {
+                name: "USER_NOT_COMPLETE",
+                message: "Lengkapi data diri anda terlebih dahulu!"
+            }
+        }
 
-            await xenditClient.PaymentRequest.createPaymentRequest({
-                data: {
-                    currency: "IDR",
-                    amount: Number(price),
-                    paymentMethod: {
-                        virtualAccount: {
-                            channelCode: payment as VirtualAccountChannelCode,
-                            channelProperties: {
-                                customerName: `Pinangsia Stay - ${user.name}`
-                            }
-                        },
-                        type: "VIRTUAL_ACCOUNT",
-                        reusability: "ONE_TIME_USE",
+        const { booking, createPayment } = await prisma.$transaction(async e => {
+            const [booking, createPayment] = await Promise.all([
+                await e.booking.create({
+                    data: {
+                        userId: user.id,
+                        roomCategoryId: roomCategoryId as string,
+                        bookingTime: new Date(bookingDate as string),
+                        createdAt: getDate()
+                    },
+                }),
+
+                await xenditClient.PaymentRequest.createPaymentRequest({
+                    data: {
+                        currency: "IDR",
+                        amount: Number(price),
+                        paymentMethod: {
+                            virtualAccount: {
+                                channelCode: payment as VirtualAccountChannelCode,
+                                channelProperties: {
+                                    customerName: `Pinangsia Stay - ${user.name}`
+                                }
+                            },
+                            type: "VIRTUAL_ACCOUNT",
+                            reusability: "ONE_TIME_USE",
+                        }
                     }
+                })
+            ])
+
+            await e.transaction.create({
+                data: {
+                    id: booking.id,
+                    transactionId: createPayment.id,
+                    transactionMethodId: createPayment.paymentMethod.id
                 }
             })
-        ])
 
-        await prisma.transaction.create({
-            data: {
-                id: booking.id,
-                transactionId: createPayment.id,
-                transactionMethodId: createPayment.paymentMethod.id
-            }
+            return { booking, createPayment }
         })
 
         return {
@@ -141,21 +152,58 @@ export const STORE = async (formData: FormData) => {
 
 export const PATCH = async (storeResponse: StoreResponseType) => {
     try {
-        const checkStatus = await xenditClient.PaymentRequest.getPaymentRequestByID({ paymentRequestId: storeResponse.paymentResponse.id })
-        if (checkStatus.status === "SUCCEEDED") {
-            await prisma.booking.update({
+        const [checkStatus, user] = await Promise.all([
+            xenditClient.PaymentRequest.getPaymentRequestByID({ paymentRequestId: storeResponse.paymentResponse.id }),
+            prisma.booking.findUnique({
                 where: { id: storeResponse.bookingId },
-                data: {
-                    paidOff: getDate()
+                select: {
+                    user: {
+                        select: { name: true, telp: true }
+                    }
                 }
             })
+        ])
 
+        if(user === null){
+            return {
+                name: "USER_NOT_FOUND",
+                message: "User tidak ditemukan!"
+            }
+        }
+
+
+        if (checkStatus.status === "SUCCEEDED") {
+            const headers = new Headers()
+            headers.append("Authorization", process.env.FONNTE_API!)
+
+            const formData = new FormData()
+            formData.append("target", `${user.user.telp}|${user.user.name}`)
+            formData.append("message", "Pembayaran anda telah berhasil dilakukan! Silahkan cek di aplikasi Pinangsia Stay untuk melihat detail pemesanan anda.")
+            console.log(Object.fromEntries(formData))
+
+            const [_updateStatus, _sendWhatsapp] = await Promise.all([
+                await prisma.booking.update({
+                    where: { id: storeResponse.bookingId },
+                    data: {
+                        paidOff: getDate()
+                    }
+                }),
+
+                await fetch(`https://api.fonnte.com/send`, {
+                    headers: headers,
+                    method: "POST",
+                    body: formData,
+                    redirect: "follow"
+                })
+            ])
+
+            console.log(await _sendWhatsapp.text())
             revalidatePath("/", "layout")
             return {
                 name: "SUCCESS",
                 message: "Pembayaran berhasil dilakukan!"
             }
-        }else{
+        } else {
             return {
                 name: "UNPAID",
                 message: "Pembayaran belum dilakukan!"

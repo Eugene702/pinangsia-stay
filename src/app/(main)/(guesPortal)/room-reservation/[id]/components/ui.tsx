@@ -42,9 +42,9 @@ const Ui = ({ data }: { data: GetResponseType }) => {
             const response = await PATCH(paymentResponse)
             showToast(response.name === "SUCCESS" ? "success" : "error", response.message)
             if(response.name === "SUCCESS"){
-                router.push("/room-reservation")
                 setPaymentResponse(null)
                 resetForm()
+                router.push("/room-reservation")
             }
             setLoading(null)
         }
