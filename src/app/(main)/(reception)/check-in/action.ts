@@ -39,6 +39,10 @@ export const GET = async ({ searchParams }: { searchParams: SearchParams }) => {
                     paidOff: null,
                 },
                 roomAllocation:null,
+                bookingTime: {
+                    gte: getDate({ fromMidnight: true }),
+                    lte: getDate({ fromMidnight: true })
+                },
                 OR: [
                     {
                         user: {

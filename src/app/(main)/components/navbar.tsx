@@ -20,11 +20,7 @@ const Navbar = () => {
     }
 
     return <div className="navbar bg-base-100 shadow-sm">
-        <div className="flex-1">
-            <label htmlFor="drawer" className="btn btn-square btn-ghost">
-                <RiMenu2Fill size={20} />
-            </label>
-        </div>
+        <div className="flex-1"></div>
         <div className="flex-none">
             {
                 status != "loading" ?
