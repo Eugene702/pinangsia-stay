@@ -5,7 +5,7 @@ import { getDate } from "@/utils/moment"
 import { Prisma } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 
-export type GetResponseType = Prisma.RoomCategoryGetPayload<{
+export type GetRoomCategoryResponseType = Prisma.RoomCategoryGetPayload<{
     select: {
         id: true
         name: true

@@ -20,6 +20,12 @@ export type GetResponseType = {
                 }
             },
             floor: true,
+            createdAt: true,
+            roomAvailability: {
+                select: {
+                    roomId: true
+                }
+            }
         }
     }>[],
     pagination: PageNumberPagination
@@ -50,6 +56,12 @@ export const GET = async (searchParams: SearchParams) => {
                     }
                 },
                 floor: true,
+                createdAt: true,
+                roomAvailability: {
+                    select: {
+                        roomId: true
+                    }
+                }
             },
             orderBy: {
                 createdAt: "desc"

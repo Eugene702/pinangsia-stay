@@ -3,36 +3,53 @@ import { GET } from "./action";
 import dynamic from "next/dynamic";
 
 export const metadata: Metadata = {
-    title: "Pengaturan Akun"
+    title: "Profile Settings - Pinangsia Stay"
 }
 
 const Error = dynamic(() => import('@/components/error'))
-const EditPhoto = dynamic(() => import('./components/editPhoto'))
-const EditBiodata = dynamic(() => import('./components/editBiodata'))
-const EditPassword = dynamic(() => import('./components/editPassword'))
+const SettingsHeader = dynamic(() => import('../components/SettingsHeader'))
+const SettingsNavigation = dynamic(() => import('../components/SettingsNavigation'))
+const ProfileContent = dynamic(() => import('./components/ProfileContentWrapper'))
 
 const page = async () => {
     const response = await GET()
-    if (response.name != "SUCCESS") {
-        return <Error message={response.message!} />
+    
+    if (response.name !== "SUCCESS") {
+        return (
+            <main className="min-h-screen bg-gray-50">
+                <SettingsHeader 
+                    title="Profile Settings" 
+                    description="Kelola informasi personal, foto profil, dan preferensi akun Anda"
+                />
+                <div className="container mx-auto px-6 py-8">
+                    <Error message={response.message!} />
+                </div>
+            </main>
+        )
     }
 
-    return <main>
-        <div className="grid grid-cols-3 gap-6">
-            <fieldset className="fieldset  bg-base-200 border border-base-300 p-4 rounded-box">
-                <legend className="fieldset-legend">Ubah Foto Profil</legend>
-                <EditPhoto />
-            </fieldset>
-            <fieldset className="fieldset col-span-3 bg-base-200 border border-base-300 p-4 rounded-box">
-                <legend className="fieldset-legend">Form edit biodata</legend>
-                <EditBiodata response={response.data!} />
-            </fieldset>
-            <fieldset className="fieldset col-span-3 bg-base-200 border border-base-300 p-4 rounded-box">
-                <legend className="fieldset-legend">Form edit kata sandi</legend>
-                <EditPassword/>
-            </fieldset>
-        </div>
-    </main>
+    return (
+        <main className="min-h-screen bg-gray-50">
+            <SettingsHeader 
+                title="Profile Settings" 
+                description="Kelola informasi personal, foto profil, dan preferensi akun Anda"
+            />
+            
+            <div className="container mx-auto px-6 py-8">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    {/* Navigation Sidebar */}
+                    <div className="lg:col-span-1">
+                        <SettingsNavigation />
+                    </div>
+                    
+                    {/* Profile Content */}
+                    <div className="lg:col-span-3">
+                        <ProfileContent userData={response.data!} />
+                    </div>
+                </div>
+            </div>
+        </main>
+    )
 }
 
 export default page

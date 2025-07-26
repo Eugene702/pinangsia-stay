@@ -20,7 +20,7 @@ const Form = ({ roomCategory }: { roomCategory: GetPayload }) => {
                 test: value => {
                     if (!value) return true
                     const file = value as File
-                    const maxSize = 5 * 1024 * 1024 // 5MB
+                    const maxSize = 5 * 1024 * 1024
                     if (file.size > maxSize) {
                         return false
                     } else {

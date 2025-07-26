@@ -11,6 +11,7 @@ export type GetResponseType = {
     booking: Prisma.BookingGetPayload<{
         select: {
             id: true,
+            paidOff: true,
             roomCategory: {
                 select: {
                     name: true
@@ -21,7 +22,12 @@ export type GetResponseType = {
                 select: {
                     checkIn: true,
                     checkOut: true,
-                    roomId: true
+                    roomId: true,
+                    room: {
+                        select: {
+                            no: true
+                        }
+                    }
                 }
             }
         }
@@ -50,6 +56,7 @@ export const GET = async ({ searchParams }: { searchParams: SearchParams }) => {
             },
             select: {
                 id: true,
+                paidOff: true,
                 roomCategory: {
                     select: {
                         name: true
@@ -60,7 +67,12 @@ export const GET = async ({ searchParams }: { searchParams: SearchParams }) => {
                     select: {
                         checkIn: true,
                         checkOut: true,
-                        roomId: true
+                        roomId: true,
+                        room: {
+                            select: {
+                                no: true
+                            }
+                        }
                     }
                 }
             },

@@ -10,7 +10,21 @@ export const GET = async () => {
                 id: true,
                 name: true,
                 photo: true,
-                price: true
+                // images: true, // TODO: Enable after Prisma client regeneration
+                price: true,
+                description: true,
+                detail: {
+                    select: {
+                        description: true,
+                        facilities: true,
+                        amenities: true,
+                        roomSize: true,
+                        maxOccupancy: true,
+                        bedType: true,
+                        viewType: true,
+                        policies: true
+                    }
+                }
             },
             orderBy: {
                 name: "asc"

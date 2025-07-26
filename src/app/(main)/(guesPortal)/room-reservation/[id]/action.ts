@@ -8,9 +8,31 @@ import { getServerSession } from "next-auth"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { PaymentRequest, VirtualAccountChannelCode } from "xendit-node/payment_request/models"
+import { sendWhatsAppMessage, generatePaymentSuccessMessage, BookingDetails } from "@/utils/whatsapp"
+import moment from "moment-timezone"
 
 export type GetResponseType = {
-    roomCategory: Prisma.RoomCategoryGetPayload<{ select: { photo: true, name: true, price: true, id: true } }>,
+    roomCategory: Prisma.RoomCategoryGetPayload<{ 
+        select: { 
+            photo: true, 
+            name: true, 
+            price: true, 
+            id: true,
+            description: true,
+            detail: {
+                select: {
+                    description: true,
+                    facilities: true,
+                    amenities: true,
+                    roomSize: true,
+                    maxOccupancy: true,
+                    bedType: true,
+                    viewType: true,
+                    policies: true
+                }
+            }
+        } 
+    }>,
     booking: Prisma.BookingGetPayload<{ select: { bookingTime: true } }>[]
 }
 
@@ -23,7 +45,20 @@ export const GET = async (roomCategoryId: string) => {
                     id: true,
                     photo: true,
                     name: true,
-                    price: true
+                    price: true,
+                    description: true,
+                    detail: {
+                        select: {
+                            description: true,
+                            facilities: true,
+                            amenities: true,
+                            roomSize: true,
+                            maxOccupancy: true,
+                            bedType: true,
+                            viewType: true,
+                            policies: true
+                        }
+                    }
                 }
             }),
 
@@ -152,54 +187,80 @@ export const STORE = async (formData: FormData) => {
 
 export const PATCH = async (storeResponse: StoreResponseType) => {
     try {
-        const [checkStatus, user] = await Promise.all([
+        const [checkStatus, booking] = await Promise.all([
             xenditClient.PaymentRequest.getPaymentRequestByID({ paymentRequestId: storeResponse.paymentResponse.id }),
             prisma.booking.findUnique({
                 where: { id: storeResponse.bookingId },
                 select: {
+                    id: true,
+                    bookingTime: true,
                     user: {
-                        select: { name: true, telp: true }
+                        select: { 
+                            name: true, 
+                            telp: true 
+                        }
+                    },
+                    roomCategory: {
+                        select: {
+                            name: true,
+                            price: true
+                        }
                     }
                 }
             })
         ])
 
-        if(user === null){
+        if(booking === null){
             return {
                 name: "USER_NOT_FOUND",
-                message: "User tidak ditemukan!"
+                message: "Booking tidak ditemukan!"
             }
         }
 
 
         if (checkStatus.status === "SUCCEEDED") {
-            const headers = new Headers()
-            headers.append("Authorization", process.env.FONNTE_API!)
+            // Prepare booking details for WhatsApp message
+            const bookingDetails: BookingDetails = {
+                bookingId: booking.id,
+                userName: booking.user.name,
+                userPhone: booking.user.telp || '',
+                roomCategoryName: booking.roomCategory.name,
+                bookingDate: moment(booking.bookingTime).format('dddd, DD MMMM YYYY'),
+                price: Number(booking.roomCategory.price),
+                transactionId: storeResponse.paymentResponse.id,
+                checkInTime: '14:00 WIB',
+                checkOutTime: '12:00 WIB'
+            }
 
-            const formData = new FormData()
-            formData.append("target", `${user.user.telp}|${user.user.name}`)
-            formData.append("message", "Pembayaran anda telah berhasil dilakukan! Silahkan cek di aplikasi Pinangsia Stay untuk melihat detail pemesanan anda.")
+            // Generate WhatsApp message
+            const whatsappMessage = generatePaymentSuccessMessage(bookingDetails)
+            const whatsappTarget = `${booking.user.telp}|${booking.user.name}`
 
-            const [_updateStatus, _sendWhatsapp] = await Promise.all([
-                await prisma.booking.update({
+            const [_updateStatus, whatsappSent] = await Promise.all([
+                prisma.booking.update({
                     where: { id: storeResponse.bookingId },
                     data: {
                         paidOff: getDate()
                     }
                 }),
 
-                await fetch(`https://api.fonnte.com/send`, {
-                    headers: headers,
-                    method: "POST",
-                    body: formData,
-                    redirect: "follow"
+                sendWhatsAppMessage({
+                    target: whatsappTarget,
+                    message: whatsappMessage
                 })
             ])
+
+            // Log WhatsApp status for debugging
+            if (!whatsappSent) {
+                console.warn(`WhatsApp notification failed for booking ${storeResponse.bookingId}`)
+            }
 
             revalidatePath("/", "layout")
             return {
                 name: "SUCCESS",
-                message: "Pembayaran berhasil dilakukan!"
+                message: whatsappSent 
+                    ? "Pembayaran berhasil! Notifikasi WhatsApp telah dikirim." 
+                    : "Pembayaran berhasil! (Notifikasi WhatsApp gagal dikirim)"
             }
         } else {
             return {

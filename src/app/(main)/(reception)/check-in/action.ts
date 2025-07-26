@@ -33,17 +33,40 @@ export type GetResponseType = {
 
 export const GET = async ({ searchParams }: { searchParams: SearchParams }) => {
     try {
+        const today = getDate({ fromMidnight: true })
+        const todayEnd = new Date(today)
+        todayEnd.setHours(23, 59, 59, 999) // End of today
+        
+        const fiveDaysAgo = new Date(today)
+        fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5)
+        
         const booking = await prisma.$extends(pagination()).booking.paginate({
             where: {
                 NOT: {
                     paidOff: null,
                 },
                 roomAllocation:null,
-                bookingTime: {
-                    gte: getDate({ fromMidnight: true }),
-                    lte: getDate({ fromMidnight: true })
-                },
-                OR: [
+                AND: [
+                    // Date filter: today OR expired 1-5 days
+                    {
+                        OR: [
+                            // Booking untuk hari ini (bisa check-in)
+                            {
+                                bookingTime: {
+                                    gte: today,
+                                    lte: todayEnd
+                                }
+                            },
+                            // Booking expired 1-5 hari (tidak bisa check-in, tapi tetap tampil)
+                            {
+                                bookingTime: {
+                                    gte: fiveDaysAgo,
+                                    lt: today
+                                }
+                            }
+                        ]
+                    },
+                    // Search filter
                     {
                         user: {
                             name: {

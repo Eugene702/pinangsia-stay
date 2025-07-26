@@ -1,7 +1,7 @@
 import { $Enums } from "@prisma/client";
 import { JSX } from "react";
-import { BiSolidCategoryAlt } from "react-icons/bi";
-import { FaHistory, FaUser } from "react-icons/fa";
+import { BiSolidCategoryAlt, BiSolidReport } from "react-icons/bi";
+import { FaHistory, FaUser, FaUsers } from "react-icons/fa";
 import { FaBuildingCircleArrowRight, FaBuildingCircleCheck } from "react-icons/fa6";
 import { MdBedroomChild, MdBedroomParent, MdSpaceDashboard } from "react-icons/md";
 
@@ -62,16 +62,9 @@ export const menuList: MenuListType[] = [
         role: ['MANAGER', "RECIPIENT"]
     },
     {
-        text: "Tamu Check-In",
-        url: "/check-in",
-        icon: <FaBuildingCircleCheck />,
-        isTitle: false,
-        role: ['MANAGER', "RECIPIENT"]
-    },
-    {
-        text: "Tamu Check-Out",
-        url: "/check-out",
-        icon: <FaBuildingCircleArrowRight />,
+        text: "Manajemen Tamu",
+        url: "/guest-management",
+        icon: <FaUsers />,
         isTitle: false,
         role: ['MANAGER', "RECIPIENT"]
     },
@@ -101,5 +94,18 @@ export const menuList: MenuListType[] = [
         icon: <FaHistory />,
         isTitle: false,
         role: ['CUSTOMER']
+    },
+    {
+        text: "Laporan",
+        url: "/report",
+        isTitle: true,
+        role: ['MANAGER']
+    },
+    {
+        icon: <BiSolidReport />,
+        text: "Laporan",
+        role: ['MANAGER'],
+        url: "/report",
+        isTitle: false
     }
 ];

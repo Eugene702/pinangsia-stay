@@ -19,6 +19,7 @@ export type GetResponseType = Prisma.UserGetPayload<{
         telp: true,
         id: true,
         password: true,
+        createdAt: true,
     }
 }>
 export const GET = async () => {

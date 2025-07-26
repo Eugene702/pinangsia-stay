@@ -14,7 +14,18 @@ export type GetPayload = [
             id: true,
             photo: true,
             name: true,
-            price: true
+            price: true,
+            room: {
+                select: {
+                    no: true,
+                    floor: true,
+                    roomAvailability: {
+                        select: {
+                            roomId: true
+                        }
+                    }
+                }
+            }
         },
     }>[],
     PageNumberPagination
@@ -27,7 +38,18 @@ export const GET = async ({ searchParams }: { searchParams: SearchParams }) => {
                 id: true,
                 photo: true,
                 name: true,
-                price: true
+                price: true,
+                room: {
+                    select: {
+                        no: true,
+                        floor: true,
+                        roomAvailability: {
+                            select: {
+                                roomId: true
+                            }
+                        }
+                    }
+                }
             },
             where: {
                 deletedAt: null,

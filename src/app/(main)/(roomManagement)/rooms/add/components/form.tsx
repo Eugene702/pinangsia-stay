@@ -1,12 +1,12 @@
 "use client"
 
 import { useFormik } from "formik"
-import { GetResponseType, STORE } from "../action"
+import { GetRoomCategoryResponseType, STORE } from "../action"
 import { number, object, string } from "yup"
 import { showToast } from "@/utils/toast"
 import { useRouter } from "next/navigation"
 
-const Form = ({ roomCategory }: { roomCategory: GetResponseType }) => {
+const Form = ({ roomCategory }: { roomCategory: GetRoomCategoryResponseType }) => {
     const router = useRouter()
     const schemaValidation = object().shape({
         no: string().required("Nomor kamar tidak boleh kosong!"),
@@ -41,35 +41,99 @@ const Form = ({ roomCategory }: { roomCategory: GetResponseType }) => {
     })
 
     return <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <fieldset className="fieldset">
-                <legend className="fieldset-legend">Nomor Kamar</legend>
-                <input type="text" className="input input-bordered w-full" name="no" placeholder="001" value={values.no} onChange={handleChange} />
+                <legend className="fieldset-legend flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    </svg>
+                    Nomor Kamar <span className="text-error">*</span>
+                </legend>
+                <input 
+                    type="text" 
+                    className="input input-bordered w-full" 
+                    name="no" 
+                    placeholder="Contoh: 101, 201A, Presidential Suite" 
+                    value={values.no} 
+                    onChange={handleChange}
+                />
+                <div className="mt-1 text-xs text-gray-500">
+                    Format bebas: angka, huruf, atau kombinasi
+                </div>
                 <span className="fieldset-label text-error">{ errors.no }</span>
             </fieldset>
 
             <fieldset className="fieldset">
-                <legend className="fieldset-legend">Kategori Kamar</legend>
+                <legend className="fieldset-legend flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    Kategori Kamar <span className="text-error">*</span>
+                </legend>
                 <select name="categoryId" className="select select-bordered w-full" value={values.categoryId} onChange={handleChange}>
                     <option value="">Pilih kategori kamar</option>
                     {
                         roomCategory.map((e, index) => <option key={index} value={e.id}>{ e.name }</option>)
                     }
                 </select>
+                <div className="mt-1 text-xs text-gray-500">
+                    Pilih sesuai dengan tipe dan fasilitas kamar
+                </div>
                 <span className="fieldset-label text-error">{ errors.categoryId }</span>
             </fieldset>
 
             <fieldset className="fieldset">
-                <legend className="fieldset-legend">Lantai</legend>
-                <input type="text" className="input input-bordered w-full" name="floor" placeholder="2" value={values.floor} onChange={handleChange} />
+                <legend className="fieldset-legend flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Lantai <span className="text-error">*</span>
+                </legend>
+                <input 
+                    type="number" 
+                    className="input input-bordered w-full" 
+                    name="floor" 
+                    placeholder="2" 
+                    value={values.floor} 
+                    onChange={handleChange}
+                    min="1"
+                />
+                <div className="mt-1 text-xs text-gray-500">
+                    Lantai minimal 1 (ground floor)
+                </div>
                 <span className="fieldset-label text-error">{ errors.floor }</span>
             </fieldset>
 
-            <div className="col-span-3 flex justify-end">
-                <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmitting}>
-                    { isSubmitting ? <div className="loading"></div> : null }
-                    <span>Simpan</span>
-                </button>
+            <div className="col-span-1 lg:col-span-3">
+                <div className="divider"></div>
+                <div className="flex justify-end gap-3">
+                    <button 
+                        type="button" 
+                        className="btn btn-ghost"
+                        onClick={() => window.history.back()}
+                    >
+                        Batal
+                    </button>
+                    <button 
+                        type="submit" 
+                        className="btn btn-primary gap-2 min-w-32" 
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <span className="loading loading-spinner loading-sm"></span>
+                                Menambahkan...
+                            </>
+                        ) : (
+                            <>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Tambah Kamar
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
         </div>
     </form>
