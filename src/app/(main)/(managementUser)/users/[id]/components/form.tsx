@@ -9,6 +9,7 @@ import { fileToBase64 } from "@/utils/utils"
 import { GetPayload, UPDATE } from "../action"
 import Image from "next/image"
 import { getCldImageUrl } from "next-cloudinary"
+import * as yup from "yup"
 
 export type FormValues = {
     photo: File | null
@@ -23,35 +24,29 @@ export type FormValues = {
 const Form = ({ user }: { user: GetPayload }) => {
     const router = useRouter()
     const schemaValidation = object().shape({
-        photo: mixed().when("photo", {
-            is: (val: File) => val,
-            then: schema => schema.test({
-                name: "FileSize",
-                message: "Ukuran file terlalu besar!",
-                test: value => {
-                    const file = value as File
-                    const maxSize = 5 * 1024 * 1024
-                    if(file.size > maxSize){
-                        return false
-                    }else{
-                        return true
-                    }
-                }
-            }).test({
-                name: "FileType",
-                message: "File tidak sesuai format",
-                test: value => {
-                    const file = value as File
-                    const allowedTypes = ["image/jpeg", "image/png", "image/jpg"]
-                    if(!allowedTypes.includes(file.type)){
-                        return false
-                    }else{
-                        return true
-                    }
-                }
-            }),
-            otherwise: schema => schema.notRequired()
-        }),
+        photo: yup
+    .mixed()
+    .notRequired()
+    .test({
+      name: "FileSize",
+      message: "Ukuran file terlalu besar!",
+      test: (value) => {
+        if (!value) return true; // Tidak ada file? Lewatkan validasi
+        const file = value as File;
+        const maxSize = 5 * 1024 * 1024;
+        return file.size <= maxSize;
+      },
+    })
+    .test({
+      name: "FileType",
+      message: "File tidak sesuai format",
+      test: (value) => {
+        if (!value) return true; // Tidak ada file? Lewatkan validasi
+        const file = value as File;
+        const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+        return allowedTypes.includes(file.type);
+      },
+    }),
         name: string().required("Nama tidak boleh kosong!"),
         email: string().email("Email tidak valid").required("Email tidak boleh kosong!"),
         telp: string().required("No. Telp tidak boleh kosong!"),
