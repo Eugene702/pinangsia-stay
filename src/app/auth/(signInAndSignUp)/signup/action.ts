@@ -6,6 +6,8 @@ import { getDate } from "@/utils/moment"
 import { genSalt, hash } from "bcrypt"
 import cloudinary from "@/utils/cloudinary"
 import { GoogleGenAI, Type } from "@google/genai"
+import { sendActivationEmail } from "@/utils/email"
+import { generateActivationToken } from "@/utils/activation"
 
 export const post = async (formData: FormData) => {
     try{
@@ -36,26 +38,57 @@ export const post = async (formData: FormData) => {
                 folder: 'pinangsia-stay/ktp',
                 resource_type: 'image'
             })
-            ktpPhotoUrl = uploadResult.secure_url
+            // Store public_id instead of secure_url for consistency
+            ktpPhotoUrl = uploadResult.public_id
         }
 
         const salt = await genSalt(10)
         const hashedPassword = await hash(password, salt)
-        await prisma.user.create({
-            data: {
-                id: nik,
-                email,
-                name,
-                password: hashedPassword,
-                role: "CUSTOMER",
-                ktpPhoto: ktpPhotoUrl,
-                status: false,
-                createdAt: getDate()
-            } as any
-        })
+        
+        let newUser
+        if (nik && nik.length === 16) {
+            // Use NIK as ID for customers
+            newUser = await prisma.user.create({
+                data: {
+                    id: nik,
+                    email,
+                    name,
+                    password: hashedPassword,
+                    role: "CUSTOMER",
+                    ktpPhoto: ktpPhotoUrl,
+                    status: false,
+                    createdAt: getDate()
+                }
+            })
+        } else {
+            // Use auto-generated UUID for others
+            newUser = await prisma.user.create({
+                data: {
+                    email,
+                    name,
+                    password: hashedPassword,
+                    role: "CUSTOMER",
+                    ktpPhoto: ktpPhotoUrl,
+                    status: false,
+                    createdAt: getDate()
+                }
+            })
+        }
+
+        // Generate activation token
+        const activationToken = await generateActivationToken(newUser.id)
+        
+        // Send activation email
+        try {
+            await sendActivationEmail(email, name, activationToken)
+        } catch (emailError) {
+            console.error('Failed to send activation email:', emailError)
+            // Don't fail the registration if email fails
+        }
 
         return {
-            name: "SUCCESS"
+            name: "SUCCESS",
+            message: "Akun berhasil dibuat! Silakan cek email Anda untuk mengaktifkan akun."
         }
     }catch(e){
         console.error(e)

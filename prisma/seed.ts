@@ -13,6 +13,7 @@ const main = async () => {
             password: hashPassword,
             name: "Manajer Hotel Pinangsia",
             role: "MANAGER",
+            status: true, // Manager langsung aktif
             createdAt: getDate(),
         },
         update: {},

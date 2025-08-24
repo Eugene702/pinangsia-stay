@@ -51,6 +51,7 @@ const Form = () => {
         },
         onSubmit: async e => {
             const formData = new FormData()
+            formData.append("nik", e.nik)
             formData.append("name", e.name)
             formData.append("email", e.email)
             formData.append("password", e.password)
@@ -61,8 +62,8 @@ const Form = () => {
 
             const response = await post(formData)
             if (response.name === "SUCCESS") {
-                showToast("success", "Account created successfully! Please sign in.")
-                router.push("/auth/signin")
+                showToast("success", response.message || "Akun berhasil dibuat! Silakan cek email Anda untuk aktivasi.")
+                router.push("/auth/signin?message=activation-email-sent")
             } else if (response.name === "FORM_VALIDATION_ERROR") {
                 const { errors } = response
                 setFieldError("email", errors!.email)
@@ -207,12 +208,12 @@ const Form = () => {
                             }`}
                     />
                 </div>
-                {errors.name && (
+                {errors.nik && (
                     <p className="mt-2 text-sm text-red-600 flex items-center">
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        {errors.name}
+                        {errors.nik}
                     </p>
                 )}
             </div>

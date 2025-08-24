@@ -13,7 +13,8 @@ export const post = async (formData: FormData) => {
                 password: true,
                 name: true,
                 photo: true,
-                role: true
+                role: true,
+                status: true
             },
             where: { email }
         })
@@ -23,6 +24,15 @@ export const post = async (formData: FormData) => {
                 name: "FORM_VALIDATION",
                 errors: {
                     email: "Pengguna tidak ditemukan!"
+                }
+            }
+        }
+
+        if(!user.status){
+            return {
+                name: "ACCOUNT_NOT_ACTIVATED",
+                errors: {
+                    email: "Akun belum diaktivasi. Silakan cek email Anda atau kirim ulang email aktivasi."
                 }
             }
         }

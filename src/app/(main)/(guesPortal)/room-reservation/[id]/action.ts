@@ -185,6 +185,61 @@ export const STORE = async (formData: FormData) => {
     }
 }
 
+export const SIMULATE_PAYMENT = async (storeResponse: StoreResponseType) => {
+    try {
+        // Only allow simulation in development mode
+        if (process.env.NODE_ENV !== 'development') {
+            return {
+                name: "FORBIDDEN",
+                message: "Simulasi pembayaran hanya tersedia dalam mode development!"
+            }
+        }
+
+        const xenditAuth = process.env.NEXT_PUBLIC_XENDIT_API_KEY
+        if (!xenditAuth) {
+            return {
+                name: "CONFIG_ERROR",
+                message: "Xendit API key tidak ditemukan!"
+            }
+        }
+
+        // Call Xendit simulation API
+        const simulationResponse = await fetch(`https://api.xendit.co/v2/payment_methods/${storeResponse.paymentResponse.paymentMethod.id}/payments/simulate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Basic ${Buffer.from(xenditAuth + ':').toString('base64')}`
+            },
+            body: JSON.stringify({
+                amount: storeResponse.paymentResponse.amount
+            })
+        })
+
+        if (!simulationResponse.ok) {
+            const errorData = await simulationResponse.text()
+            console.error('Xendit simulation error:', errorData)
+            return {
+                name: "SIMULATION_ERROR",
+                message: "Gagal melakukan simulasi pembayaran!"
+            }
+        }
+
+        const simulationData = await simulationResponse.json()
+        console.log('Payment simulation successful:', simulationData)
+
+        return {
+            name: "SUCCESS",
+            message: "Simulasi pembayaran berhasil! Silakan verifikasi pembayaran."
+        }
+    } catch (e) {
+        console.error('Simulation error:', e)
+        return {
+            name: "SERVER_ERROR",
+            message: "Ada kesalahan pada server saat simulasi!"
+        }
+    }
+}
+
 export const PATCH = async (storeResponse: StoreResponseType) => {
     try {
         const [checkStatus, booking] = await Promise.all([

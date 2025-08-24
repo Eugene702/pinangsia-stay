@@ -1,7 +1,7 @@
 "use client"
 
 import { getCldImageUrl } from "next-cloudinary"
-import { GetResponseType, PATCH, STORE, StoreResponseType } from "../action"
+import { GetResponseType, PATCH, STORE, StoreResponseType, SIMULATE_PAYMENT } from "../action"
 import Image from "next/image"
 import { converToRupiah } from "@/utils/utils"
 import { copyToClipboard } from "@/utils/clipboard"
@@ -21,7 +21,8 @@ moment.locale('en')
 const Ui = ({ data }: { data: GetResponseType }) => {
     const router = useRouter()
     const [paymentResponse, setPaymentResponse] = useState<StoreResponseType | null>(null)
-    const [loading, setLoading] = useState<"CHECK_PAYMENT" | null>(null)
+    const [loading, setLoading] = useState<"CHECK_PAYMENT" | "SIMULATE_PAYMENT" | null>(null)
+    const [paymentSimulated, setPaymentSimulated] = useState(false)
     const [modalError, setModalError] = useState<{
         show: boolean
         type: SweetAlertIcon
@@ -31,6 +32,13 @@ const Ui = ({ data }: { data: GetResponseType }) => {
         type: 'error',
         message: ''
     })
+
+    // Check if we're in development mode (you can also use localhost check)
+    const isDevelopment = typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' || 
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname.includes('dev')
+    )
 
     // Setup modal error callback
     useEffect(() => {
@@ -76,8 +84,21 @@ const Ui = ({ data }: { data: GetResponseType }) => {
             showToast(response.name === "SUCCESS" ? "success" : "error", response.message)
             if(response.name === "SUCCESS"){
                 setPaymentResponse(null)
+                setPaymentSimulated(false)
                 resetForm()
                 router.push("/room-reservation")
+            }
+            setLoading(null)
+        }
+    }
+
+    const simulatePayment = async () => {
+        if(paymentResponse){
+            setLoading("SIMULATE_PAYMENT")
+            const response = await SIMULATE_PAYMENT(paymentResponse)
+            showToast(response.name === "SUCCESS" ? "success" : "error", response.message)
+            if(response.name === "SUCCESS"){
+                setPaymentSimulated(true)
             }
             setLoading(null)
         }
@@ -326,8 +347,15 @@ const Ui = ({ data }: { data: GetResponseType }) => {
                                 <h3 className="text-xl font-semibold text-green-900 mb-2">Payment Information</h3>
                                 <p className="text-green-700 text-sm">Complete your payment using the details below</p>
                             </div>
-                            <div className="bg-green-100 px-3 py-1 rounded-full">
-                                <span className="text-green-800 font-bold text-sm">Pending Payment</span>
+                            <div className="flex flex-col gap-2">
+                                <div className="bg-green-100 px-3 py-1 rounded-full">
+                                    <span className="text-green-800 font-bold text-sm">Pending Payment</span>
+                                </div>
+                                {isDevelopment && paymentSimulated && (
+                                    <div className="bg-orange-100 px-3 py-1 rounded-full">
+                                        <span className="text-orange-800 font-bold text-sm">Payment Simulated</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         
@@ -388,23 +416,47 @@ const Ui = ({ data }: { data: GetResponseType }) => {
                             </svg>
                         </button>
                     ) : (
-                        <button
-                            type="button"
-                            onClick={checkPayment}
-                            disabled={loading === "CHECK_PAYMENT"}
-                            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
-                        >
-                            {loading === "CHECK_PAYMENT" && (
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            {/* Simulate Payment Button - Only visible in development and before simulation */}
+                            {isDevelopment && !paymentSimulated && (
+                                <button
+                                    type="button"
+                                    onClick={simulatePayment}
+                                    disabled={loading === "SIMULATE_PAYMENT"}
+                                    className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
+                                >
+                                    {loading === "SIMULATE_PAYMENT" && (
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    )}
+                                    <span>Simulate Payment</span>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </button>
                             )}
-                            <span>Verify Payment</span>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </button>
+
+                            {/* Verify Payment Button */}
+                            <button
+                                type="button"
+                                onClick={checkPayment}
+                                disabled={loading === "CHECK_PAYMENT"}
+                                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
+                            >
+                                {loading === "CHECK_PAYMENT" && (
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                )}
+                                <span>Verify Payment</span>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </button>
+                        </div>
                     )}
                 </div>
             </form>

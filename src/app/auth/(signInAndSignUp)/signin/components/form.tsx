@@ -47,9 +47,14 @@ const Form = () => {
                         router.push("/room-reservation")
                     }
                 })
-            } else if (response.name === "FORM_VALIDATION") {
+            } else if (response.name === "FORM_VALIDATION" || response.name === "ACCOUNT_NOT_ACTIVATED") {
                 for (const key in response.errors) {
                     setFieldError(key, response.errors[key as keyof FormProps])
+                }
+                
+                // Show resend activation link if account not activated
+                if (response.name === "ACCOUNT_NOT_ACTIVATED") {
+                    showToast("warning", "Akun belum diaktivasi. Silakan cek email Anda.")
                 }
             } else {
                 showToast("error", response.message!)
@@ -165,15 +170,21 @@ const Form = () => {
                 )}
             </button>
 
-            {/* Forgot Password Link */}
-            <div className="text-center">
+            {/* Forgot Password & Resend Activation Links */}
+            <div className="text-center space-y-2">
                 <button
                     type="button"
-                    className="text-sm text-red-600 hover:text-red-700 font-medium"
+                    className="text-sm text-red-600 hover:text-red-700 font-medium block w-full"
                     onClick={() => showToast("info", "Forgot password feature coming soon!")}
                 >
                     Forgot your password?
                 </button>
+                <a
+                    href="/auth/resend-activation"
+                    className="text-sm text-gray-600 hover:text-gray-700 font-medium block"
+                >
+                    Didn't receive activation email? Resend activation email
+                </a>
             </div>
         </form>
     )

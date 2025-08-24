@@ -2,9 +2,142 @@
 
 import { prisma } from "@/utils/database"
 import xenditClient from "@/utils/xendit"
+import { getServerSession } from "next-auth"
 
-export const GET = async () => {
+export type ReceptionistDashboardData = {
+    totalBookings: number
+    todayBookings: number
+    availableRooms: number
+    recentBookings: Array<{
+        id: string
+        bookingTime: Date
+        user: {
+            name: string
+            email: string
+        }
+        roomCategory: {
+            name: string
+            price: bigint
+        }
+    }>
+}
+
+export type ManagerDashboardData = {
+    room: number
+    roomCategory: number
+    user: number
+    balance: any
+    bookingStats: {
+        totalBookings: number
+        totalRevenue: number
+    }
+    chartData: {
+        recentBookings: any[]
+        roomCategoryStats: Array<{
+            name: string
+            bookingCount: number
+            revenue: number
+        }>
+    }
+}
+
+export type DashboardResponse = {
+    name: "SUCCESS" | "SERVER_ERROR"
+    message?: string
+    data?: {
+        userRole?: string // Add user role to response
+        receptionistData?: ReceptionistDashboardData
+        // Manager data (optional)
+        room?: number
+        roomCategory?: number
+        user?: number
+        balance?: any
+        bookingStats?: {
+            totalBookings: number
+            totalRevenue: number
+        }
+        chartData?: {
+            recentBookings: any[]
+            roomCategoryStats: Array<{
+                name: string
+                bookingCount: number
+                revenue: number
+            }>
+        }
+    }
+}
+
+export const GET = async (): Promise<DashboardResponse> => {
     try{
+        const session = await getServerSession()
+        
+        // Get user role from database using email
+        let userRole: string | null = null
+        if (session?.user?.email) {
+            const user = await prisma.user.findUnique({
+                where: { email: session.user.email },
+                select: { role: true }
+            })
+            userRole = user?.role || null
+        }
+        
+        if (userRole === 'RECIPIENT') {
+            // Limited data for receptionist - NO XENDIT/FINANCIAL DATA
+            const [ totalBookings, todayBookings, recentBookings, availableRooms ] = await Promise.all([
+                // Total bookings (for receptionist to see activity)
+                prisma.booking.count({
+                    where: {
+                        NOT: { paidOff: null }
+                    }
+                }),
+                // Today's bookings (important for reception)
+                prisma.booking.count({
+                    where: {
+                        NOT: { paidOff: null },
+                        bookingTime: {
+                            gte: new Date(new Date().setHours(0, 0, 0, 0))
+                        }
+                    }
+                }),
+                // Recent bookings for receptionist to see current activity
+                prisma.booking.findMany({
+                    where: {
+                        NOT: { paidOff: null }
+                    },
+                    include: {
+                        user: {
+                            select: { name: true, email: true }
+                        },
+                        roomCategory: {
+                            select: { name: true, price: true }
+                        }
+                    },
+                    orderBy: { bookingTime: 'desc' },
+                    take: 5
+                }),
+                // Available rooms today
+                prisma.room.count({
+                    where: {
+                        deletedAt: null
+                    }
+                })
+            ])
+
+            return {
+                name: "SUCCESS",
+                data: {
+                    userRole: 'RECIPIENT',
+                    receptionistData: {
+                        totalBookings,
+                        todayBookings,
+                        availableRooms,
+                        recentBookings
+                    }
+                }
+            }
+        }
+
+        // Full data for manager
         const [ room, roomCategory, user, balance, totalBookings, totalRevenue ] = await Promise.all([
             prisma.room.count(),
             prisma.roomCategory.count(),
@@ -70,6 +203,7 @@ export const GET = async () => {
         return {
             name: "SUCCESS",
             data: {
+                userRole: userRole || 'MANAGER', // Include user role in response
                 room,
                 roomCategory,
                 user,

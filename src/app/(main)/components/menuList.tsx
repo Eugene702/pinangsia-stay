@@ -20,7 +20,7 @@ export const menuList: MenuListType[] = [
         text: "Dashboard",
         url: "/dashboard",
         isTitle: false,
-        role: ['MANAGER']
+        role: ['MANAGER', 'RECIPIENT']
     },
     {
         text: "Manajemen Pengguna",

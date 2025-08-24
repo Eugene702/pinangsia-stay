@@ -45,6 +45,7 @@ export const post = async (formData: FormData) => {
                 telp,
                 photo: uploadResult ? uploadResult.public_id : undefined,
                 role: "RECIPIENT",
+                status: true,
                 createdAt: getDate()
             }
         })
