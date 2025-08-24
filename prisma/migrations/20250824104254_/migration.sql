@@ -5,12 +5,14 @@ CREATE TYPE "Role" AS ENUM ('MANAGER', 'RECIPIENT', 'CUSTOMER');
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "photo" TEXT,
+    "ktpPhoto" TEXT,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "telp" TEXT,
     "address" TEXT,
     "role" "Role" NOT NULL,
+    "status" BOOLEAN NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
 
@@ -21,6 +23,7 @@ CREATE TABLE "User" (
 CREATE TABLE "RoomCategory" (
     "id" TEXT NOT NULL,
     "photo" TEXT NOT NULL,
+    "images" TEXT[],
     "name" TEXT NOT NULL,
     "price" BIGINT NOT NULL,
     "description" TEXT,
