@@ -10,16 +10,34 @@ export type GetResponseType = {
     booking: Prisma.BookingGetPayload<{
         select: {
             id: true,
+            checkInDate: true,
+            checkOutDate: true,
+            bookingTime: true,
+            paidOff: true,
+            createdAt: true,
             roomCategory: {
                 select: {
                     name: true,
                     price: true
                 }
             },
-            bookingTime: true,
             user: {
                 select: {
-                    name: true
+                    name: true,
+                    email: true,
+                    telp: true
+                }
+            },
+            roomAllocation: {
+                select: {
+                    id: true,
+                    checkIn: true,
+                    checkOut: true,
+                    room: {
+                        select: {
+                            no: true
+                        }
+                    }
                 }
             }
         }
@@ -47,18 +65,39 @@ export const GET = async ({ searchParams }: { searchParams: SearchParams }) => {
             },
             select: {
                 id: true,
+                checkInDate: true,
+                checkOutDate: true,
+                bookingTime: true,
+                paidOff: true,
+                createdAt: true,
                 roomCategory: {
                     select: {
                         name: true,
                         price: true
                     }
                 },
-                bookingTime: true,
                 user: {
                     select: {
-                        name: true
+                        name: true,
+                        email: true,
+                        telp: true
+                    }
+                },
+                roomAllocation: {
+                    select: {
+                        id: true,
+                        checkIn: true,
+                        checkOut: true,
+                        room: {
+                            select: {
+                                no: true
+                            }
+                        }
                     }
                 }
+            },
+            orderBy: {
+                createdAt: "desc"
             }
         }).withPages({
             limit: 10,

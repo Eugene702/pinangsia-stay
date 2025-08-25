@@ -14,11 +14,21 @@ export type GetResponseType = {
             id: true,
             booking: {
                 select: {
+                    id: true,
+                    checkInDate: true,
+                    checkOutDate: true,
+                    bookingTime: true,
                     user: {
                         select: {
                             id: true,
                             name: true,
                             photo: true,
+                        }
+                    },
+                    roomCategory: {
+                        select: {
+                            name: true,
+                            price: true
                         }
                     }
                 }
@@ -61,11 +71,21 @@ export const GET = async ({ searchParams }: { searchParams: SearchParams }) => {
                 id: true,
                 booking: {
                     select: {
+                        id: true,
+                        checkInDate: true,
+                        checkOutDate: true,
+                        bookingTime: true,
                         user: {
                             select: {
                                 id: true,
                                 name: true,
                                 photo: true,
+                            }
+                        },
+                        roomCategory: {
+                            select: {
+                                name: true,
+                                price: true
                             }
                         }
                     }

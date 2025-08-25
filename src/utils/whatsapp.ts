@@ -11,8 +11,12 @@ export interface BookingDetails {
     userName: string
     userPhone: string
     roomCategoryName: string
-    bookingDate: string
-    price: number 
+    checkInDate: string // New: check-in date
+    checkOutDate: string // New: check-out date
+    nights: number // New: number of nights
+    bookingDate: string // Deprecated: for backward compatibility
+    price: number // Total price for all nights
+    pricePerNight?: number // New: price per night
     paymentMethod?: string
     transactionId?: string
     checkInTime?: string
@@ -58,12 +62,22 @@ export const generatePaymentSuccessMessage = (booking: BookingDetails): string =
     const header = "🎉 *PEMBAYARAN BERHASIL - PINANGSIA STAY*"
     const thankYou = "Terima kasih atas pembayaran Anda!"
     
+    // Use date range or fallback to single date
+    const stayDuration = booking.nights > 1 
+        ? `${booking.nights} malam (${booking.checkInDate} - ${booking.checkOutDate})`
+        : booking.checkInDate || booking.bookingDate
+    
     const bookingDetails = [
         "📋 *DETAIL BOOKING:*",
         "• Booking ID: " + booking.bookingId,
         "• Nama: " + booking.userName,
         "• Tipe Kamar: " + booking.roomCategoryName,
-        "• Tanggal Check-in: " + booking.bookingDate,
+        "• Check-in: " + (booking.checkInDate || booking.bookingDate),
+        "• Check-out: " + (booking.checkOutDate || 'Hari berikutnya'),
+        "• Durasi: " + (booking.nights ? booking.nights + " malam" : "1 malam"),
+        booking.pricePerNight && booking.nights > 1 
+            ? "• Harga per malam: " + converToRupiah(booking.pricePerNight)
+            : '',
         "• Total Bayar: " + converToRupiah(booking.price),
         booking.transactionId ? "• Transaction ID: " + booking.transactionId : ''
     ].filter(Boolean).join("\n")
@@ -75,8 +89,8 @@ export const generatePaymentSuccessMessage = (booking: BookingDetails): string =
         "1. Simpan pesan ini sebagai bukti pembayaran",
         "2. Datang ke hotel pada tanggal check-in",
         "3. Tunjukkan pesan ini di reception",
-        "4. Check-in: " + (booking.checkInTime || '14:00'),
-        "5. Check-out: " + (booking.checkOutTime || '12:00')
+        "4. Check-in: " + (booking.checkInTime || '14:00 WIB'),
+        "5. Check-out: " + (booking.checkOutTime || '12:00 WIB')
     ].join("\n")
     
     const hotelInfo = [
@@ -85,7 +99,9 @@ export const generatePaymentSuccessMessage = (booking: BookingDetails): string =
         "📞 Hubungi kami: +62 21 xxx-xxxx"
     ].join("\n")
     
-    const closing = "Terima kasih telah memilih Pinangsia Stay! 🙏"
+    const closing = booking.nights > 1 
+        ? `Terima kasih telah memilih Pinangsia Stay untuk ${booking.nights} malam! 🙏`
+        : "Terima kasih telah memilih Pinangsia Stay! 🙏"
     
     return [
         header,
@@ -116,9 +132,11 @@ export const generateBookingReminderMessage = (booking: BookingDetails): string 
         "📋 *DETAIL BOOKING:*",
         "• Booking ID: " + booking.bookingId,
         "• Tipe Kamar: " + booking.roomCategoryName,
-        "• Tanggal: " + booking.bookingDate,
-        "• Check-in: " + (booking.checkInTime || '14:00') + " WIB"
-    ].join("\n")
+        "• Check-in: " + (booking.checkInDate || booking.bookingDate),
+        "• Check-out: " + (booking.checkOutDate || 'Sesuai durasi booking'),
+        booking.nights ? "• Durasi: " + booking.nights + " malam" : '',
+        "• Waktu Check-in: " + (booking.checkInTime || '14:00') + " WIB"
+    ].filter(Boolean).join("\n")
     
     const hotelAddress = [
         "📍 *ALAMAT HOTEL:*",
@@ -193,8 +211,10 @@ export const generateCancellationMessage = (booking: BookingDetails): string => 
         "📋 *DETAIL BOOKING:*",
         "• Booking ID: " + booking.bookingId,
         "• Tipe Kamar: " + booking.roomCategoryName,
-        "• Tanggal: " + booking.bookingDate
-    ].join("\n")
+        "• Check-in: " + (booking.checkInDate || booking.bookingDate),
+        "• Check-out: " + (booking.checkOutDate || 'Sesuai durasi booking'),
+        booking.nights ? "• Durasi: " + booking.nights + " malam" : ''
+    ].filter(Boolean).join("\n")
     
     const refundInfo = [
         "💰 *REFUND:*",

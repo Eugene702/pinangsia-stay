@@ -59,15 +59,26 @@ const Ui = ({ data }: { data: GetResponseType }) => {
 
     const { values, setValues, isSubmitting, handleChange, handleSubmit, resetForm } = useFormik({
         initialValues: {
-            date: "",
+            checkInDate: "",
+            checkOutDate: "",
             payment: ""
         },
         onSubmit: async e => {
             const formData = new FormData()
-            formData.append("bookingDate", e.date)
+            formData.append("checkInDate", e.checkInDate)
+            formData.append("checkOutDate", e.checkOutDate)
             formData.append("roomCategoryId", data.roomCategory.id)
             formData.append("payment", e.payment)
-            formData.append('price', data.roomCategory.price.toString())
+            
+            // Calculate total nights and price
+            const checkIn = moment(e.checkInDate)
+            const checkOut = moment(e.checkOutDate)
+            const nights = checkOut.diff(checkIn, 'days')
+            const totalPrice = Number(data.roomCategory.price) * nights
+            
+            formData.append('price', totalPrice.toString())
+            formData.append('nights', nights.toString())
+            
             const saveData = await STORE(formData)
             if (saveData.name === "SUCCESS") {
                 setPaymentResponse(saveData.data!)
@@ -114,14 +125,81 @@ const Ui = ({ data }: { data: GetResponseType }) => {
     }
 
     const checkAvailability = (date: Date): boolean => {
-        const isAvaible = data.booking.some(booking => moment(booking.bookingTime).isSame(date, "date"))
-        const isBeforeDay = moment(date).isBefore(getDate(), "date")
+        const isBooked = data.booking.some(booking => {
+            // Check legacy bookings (single date)
+            if (booking.bookingTime && !booking.checkInDate) {
+                return moment(booking.bookingTime).isSame(date, "date")
+            }
+            
+            // Check new bookings (date range)
+            if (booking.checkInDate && booking.checkOutDate) {
+                const checkIn = moment(booking.checkInDate)
+                const checkOut = moment(booking.checkOutDate)
+                const selectedDate = moment(date)
+                
+                return selectedDate.isSameOrAfter(checkIn, "date") && 
+                       selectedDate.isBefore(checkOut, "date")
+            }
+            
+            // Fallback to bookingTime
+            return moment(booking.bookingTime).isSame(date, "date")
+        })
+        
+        const isBeforeToday = moment(date).isBefore(getDate(), "date")
+        return isBooked || isBeforeToday
+    }
 
-        if(isAvaible){
-            return true
-        }else{
-            return isBeforeDay
+    const checkCheckOutAvailability = (date: Date): boolean => {
+        // Check-out date must be after check-in date
+        if (!values.checkInDate) return true
+        
+        const checkInMoment = moment(values.checkInDate)
+        const isBeforeCheckIn = moment(date).isSameOrBefore(checkInMoment, "date")
+        
+        // Check if any date in the range conflicts with existing bookings
+        if (!isBeforeCheckIn) {
+            const current = checkInMoment.clone().add(1, 'day')
+            const checkOutMoment = moment(date)
+            
+            while (current.isBefore(checkOutMoment, 'day')) {
+                const isDateBooked = data.booking.some(booking => {
+                    // Check legacy bookings
+                    if (booking.bookingTime && !booking.checkInDate) {
+                        return moment(booking.bookingTime).isSame(current, "date")
+                    }
+                    
+                    // Check new bookings (date range)
+                    if (booking.checkInDate && booking.checkOutDate) {
+                        const checkIn = moment(booking.checkInDate)
+                        const checkOut = moment(booking.checkOutDate)
+                        
+                        return current.isSameOrAfter(checkIn, "date") && 
+                               current.isBefore(checkOut, "date")
+                    }
+                    
+                    // Fallback to bookingTime
+                    return moment(booking.bookingTime).isSame(current, "date")
+                })
+                
+                if (isDateBooked) return true
+                current.add(1, 'day')
+            }
         }
+        
+        return isBeforeCheckIn
+    }
+
+    // Calculate total nights and price
+    const getTotalNights = (): number => {
+        if (!values.checkInDate || !values.checkOutDate) return 0
+        const checkIn = moment(values.checkInDate)
+        const checkOut = moment(values.checkOutDate)
+        return checkOut.diff(checkIn, 'days')
+    }
+
+    const getTotalPrice = (): number => {
+        const nights = getTotalNights()
+        return nights * Number(data.roomCategory.price)
     }
 
     return (
@@ -182,6 +260,16 @@ const Ui = ({ data }: { data: GetResponseType }) => {
                                         {converToRupiah(Number(data.roomCategory.price))}
                                     </span>
                                     <p className="text-sm text-red-500 font-medium">per night</p>
+                                    {getTotalNights() > 0 && (
+                                        <div className="mt-2 pt-2 border-t border-red-200">
+                                            <p className="text-sm text-red-600">
+                                                {getTotalNights()} night{getTotalNights() > 1 ? 's' : ''}
+                                            </p>
+                                            <span className="text-xl font-bold text-red-700">
+                                                Total: {converToRupiah(getTotalPrice())}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -269,30 +357,98 @@ const Ui = ({ data }: { data: GetResponseType }) => {
                     {/* Calendar Section */}
                     <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
                         <div className="mb-6">
-                            <h3 className="text-xl font-semibold text-gray-900 mb-2">Select Date</h3>
-                            <p className="text-gray-600 text-sm">Choose your preferred check-in date</p>
+                            <h3 className="text-xl font-semibold text-gray-900 mb-2">Select Dates</h3>
+                            <p className="text-gray-600 text-sm">Choose your check-in and check-out dates</p>
                         </div>
                         
-                        <div className="flex justify-center">
-                            <div className="bg-gray-50 rounded-xl p-4">
-                                <calendar-date
-                                    locale="id-ID"
-                                    isDateDisallowed={checkAvailability}
-                                    onchange={e => setValues({ ...values, date: (e.target as unknown as { value: string }).value })}>
-                                    <calendar-month></calendar-month>
-                                </calendar-date>
+                        {/* Check-in Date */}
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Check-in Date</label>
+                            <div className="flex justify-center">
+                                <div className="bg-gray-50 rounded-xl p-4">
+                                    <calendar-date
+                                        locale="id-ID"
+                                        isDateDisallowed={checkAvailability}
+                                        onchange={e => setValues({ 
+                                            ...values, 
+                                            checkInDate: (e.target as unknown as { value: string }).value,
+                                            checkOutDate: "" // Reset check-out when check-in changes
+                                        })}>
+                                        <calendar-month></calendar-month>
+                                    </calendar-date>
+                                </div>
                             </div>
+                            
+                            {values.checkInDate && (
+                                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="flex items-center">
+                                        <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span className="text-blue-800 font-medium">
+                                            Check-in: {moment(values.checkInDate).format('dddd, MMMM Do YYYY')}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        
-                        {values.date && (
-                            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                <div className="flex items-center">
-                                    <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span className="text-green-800 font-medium">
-                                        Selected: {moment(values.date).format('dddd, MMMM Do YYYY')}
-                                    </span>
+
+                        {/* Check-out Date */}
+                        {values.checkInDate && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Check-out Date</label>
+                                <div className="flex justify-center">
+                                    <div className="bg-gray-50 rounded-xl p-4">
+                                        <calendar-date
+                                            locale="id-ID"
+                                            isDateDisallowed={checkCheckOutAvailability}
+                                            onchange={e => setValues({ 
+                                                ...values, 
+                                                checkOutDate: (e.target as unknown as { value: string }).value 
+                                            })}>
+                                            <calendar-month></calendar-month>
+                                        </calendar-date>
+                                    </div>
+                                </div>
+                                
+                                {values.checkOutDate && (
+                                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                        <div className="flex items-center">
+                                            <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <span className="text-green-800 font-medium">
+                                                Check-out: {moment(values.checkOutDate).format('dddd, MMMM Do YYYY')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Booking Summary */}
+                        {values.checkInDate && values.checkOutDate && getTotalNights() > 0 && (
+                            <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+                                <h4 className="font-semibold text-purple-900 mb-2">Booking Summary</h4>
+                                <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-purple-700">Duration:</span>
+                                        <span className="font-medium text-purple-900">
+                                            {getTotalNights()} night{getTotalNights() > 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-purple-700">Rate per night:</span>
+                                        <span className="font-medium text-purple-900">
+                                            {converToRupiah(Number(data.roomCategory.price))}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between border-t border-purple-200 pt-2">
+                                        <span className="font-semibold text-purple-800">Total Amount:</span>
+                                        <span className="font-bold text-purple-900">
+                                            {converToRupiah(getTotalPrice())}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -401,7 +557,7 @@ const Ui = ({ data }: { data: GetResponseType }) => {
                     {!paymentResponse ? (
                         <button
                             type="submit"
-                            disabled={isSubmitting || !values.date || !values.payment}
+                            disabled={isSubmitting || !values.checkInDate || !values.checkOutDate || !values.payment || getTotalNights() <= 0}
                             className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed"
                         >
                             {isSubmitting && (

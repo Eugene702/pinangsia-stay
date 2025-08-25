@@ -23,15 +23,24 @@ const page = async({ searchParams }: { searchParams: Promise<SearchParams> }) =>
         <Header
             title="Daftar Tamu Check-Out"
             breadcrumbs={[
-                { text: "Daftar Tamu Check-Out" }
+                { text: "Reception" },
+                { text: "Check-Out" }
             ]} />
 
         <div className="mt-5 card bg-white shadow">
             <div className="card-body">
                 <div className="flex justify-between items-center">
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-800 mb-1">
+                            Manajemen Check-Out Tamu
+                        </h2>
+                        <p className="text-gray-600 text-sm">
+                            Kelola proses check-out tamu yang sedang menginap dengan informasi booking lengkap
+                        </p>
+                    </div>
                     <SearchInput
                         label="Cari nama tamu"
-                        placeholder="Alvin" />
+                        placeholder="Nama tamu..." />
                 </div>
             </div>
         </div>

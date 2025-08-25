@@ -95,7 +95,9 @@ model Booking{
   id String @id @default(cuid())
   userId String
   roomCategoryId String
-  bookingTime DateTime @db.Timestamp(3)
+  checkInDate DateTime? @db.Timestamp(3)
+  checkOutDate DateTime? @db.Timestamp(3)
+  bookingTime DateTime @db.Timestamp(3) // Deprecated, use checkInDate instead
   paidOff DateTime?
   createdAt DateTime @db.Timestamp(3)
 

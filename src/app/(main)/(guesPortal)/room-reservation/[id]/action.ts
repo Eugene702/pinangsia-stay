@@ -33,7 +33,13 @@ export type GetResponseType = {
             }
         } 
     }>,
-    booking: Prisma.BookingGetPayload<{ select: { bookingTime: true } }>[]
+    booking: Prisma.BookingGetPayload<{ 
+        select: { 
+            bookingTime: true,
+            checkInDate: true,
+            checkOutDate: true
+        } 
+    }>[]
 }
 
 export const GET = async (roomCategoryId: string) => {
@@ -68,12 +74,26 @@ export const GET = async (roomCategoryId: string) => {
                     NOT: {
                         paidOff: null
                     },
-                    bookingTime: {
-                        gte: getDate({ fromMidnight: true })
-                    }
+                    OR: [
+                        // Legacy bookings using bookingTime only
+                        {
+                            bookingTime: {
+                                gte: getDate({ fromMidnight: true })
+                            },
+                            checkInDate: null
+                        },
+                        // New bookings using checkInDate/checkOutDate
+                        {
+                            checkInDate: {
+                                gte: getDate({ fromMidnight: true })
+                            }
+                        }
+                    ]
                 },
                 select: {
-                    bookingTime: true
+                    bookingTime: true,
+                    checkInDate: true,
+                    checkOutDate: true
                 }
             })
         ])
@@ -110,7 +130,7 @@ export const STORE = async (formData: FormData) => {
             }
         }
 
-        const { roomCategoryId, bookingDate, payment, price } = Object.fromEntries(formData)
+        const { roomCategoryId, checkInDate, checkOutDate, payment, price, nights } = Object.fromEntries(formData)
         const user = await prisma.user.findUnique({
             where: { email: session.user.email }
         })
@@ -129,34 +149,65 @@ export const STORE = async (formData: FormData) => {
             }
         }
 
-        const { booking, createPayment } = await prisma.$transaction(async e => {
-            const [booking, createPayment] = await Promise.all([
-                await e.booking.create({
-                    data: {
-                        userId: user.id,
-                        roomCategoryId: roomCategoryId as string,
-                        bookingTime: new Date(bookingDate as string),
-                        createdAt: getDate()
-                    },
-                }),
+        // Validate date range
+        const checkIn = new Date(checkInDate as string)
+        const checkOut = new Date(checkOutDate as string)
+        
+        if (checkOut <= checkIn) {
+            return {
+                name: "INVALID_DATE_RANGE",
+                message: "Tanggal check-out harus setelah tanggal check-in!"
+            }
+        }
 
-                await xenditClient.PaymentRequest.createPaymentRequest({
-                    data: {
-                        currency: "IDR",
-                        amount: Number(price),
-                        paymentMethod: {
-                            virtualAccount: {
-                                channelCode: payment as VirtualAccountChannelCode,
-                                channelProperties: {
-                                    customerName: `Pinangsia Stay - ${user.name}`
-                                }
-                            },
-                            type: "VIRTUAL_ACCOUNT",
-                            reusability: "ONE_TIME_USE",
-                        }
+        // Check if any dates in the range are already booked
+        const existingBookings = await prisma.booking.findMany({
+            where: {
+                roomCategoryId: roomCategoryId as string,
+                NOT: { paidOff: null },
+                bookingTime: {
+                    gte: checkIn,
+                    lt: checkOut
+                }
+            }
+        })
+
+        if (existingBookings.length > 0) {
+            return {
+                name: "DATE_CONFLICT",
+                message: "Beberapa tanggal dalam rentang yang dipilih sudah dibooking!"
+            }
+        }
+
+        const { booking, createPayment } = await prisma.$transaction(async e => {
+            // Try using the new Prisma client first
+            const booking = await e.booking.create({
+                data: {
+                    userId: user.id,
+                    roomCategoryId: roomCategoryId as string,
+                    checkInDate: checkIn,
+                    checkOutDate: checkOut,
+                    bookingTime: checkIn, // Keep for backward compatibility
+                    createdAt: getDate()
+                },
+            })
+
+            const createPayment = await xenditClient.PaymentRequest.createPaymentRequest({
+                data: {
+                    currency: "IDR",
+                    amount: Number(price),
+                    paymentMethod: {
+                        virtualAccount: {
+                            channelCode: payment as VirtualAccountChannelCode,
+                            channelProperties: {
+                                customerName: `Pinangsia Stay - ${user.name} (${nights} nights)`
+                            }
+                        },
+                        type: "VIRTUAL_ACCOUNT",
+                        reusability: "ONE_TIME_USE",
                     }
-                })
-            ])
+                }
+            })
 
             await e.transaction.create({
                 data: {
@@ -249,6 +300,8 @@ export const PATCH = async (storeResponse: StoreResponseType) => {
                 select: {
                     id: true,
                     bookingTime: true,
+                    checkInDate: true,
+                    checkOutDate: true,
                     user: {
                         select: { 
                             name: true, 
@@ -274,14 +327,34 @@ export const PATCH = async (storeResponse: StoreResponseType) => {
 
 
         if (checkStatus.status === "SUCCEEDED") {
-            // Prepare booking details for WhatsApp message
+            // Calculate nights and prepare booking details for WhatsApp message
+            const checkInDate = booking.checkInDate || booking.bookingTime
+            const checkOutDate = booking.checkOutDate
+            
+            let nights = 1
+            let checkInDateStr = moment(checkInDate).format('dddd, DD MMMM YYYY')
+            let checkOutDateStr = checkOutDate 
+                ? moment(checkOutDate).format('dddd, DD MMMM YYYY')
+                : moment(checkInDate).add(1, 'day').format('dddd, DD MMMM YYYY')
+            
+            if (checkOutDate) {
+                nights = moment(checkOutDate).diff(moment(checkInDate), 'days')
+            }
+            
+            const pricePerNight = Number(booking.roomCategory.price)
+            const totalPrice = pricePerNight * nights
+
             const bookingDetails: BookingDetails = {
                 bookingId: booking.id,
                 userName: booking.user.name,
                 userPhone: booking.user.telp || '',
                 roomCategoryName: booking.roomCategory.name,
-                bookingDate: moment(booking.bookingTime).format('dddd, DD MMMM YYYY'),
-                price: Number(booking.roomCategory.price),
+                checkInDate: checkInDateStr,
+                checkOutDate: checkOutDateStr,
+                nights: nights,
+                bookingDate: checkInDateStr, // For backward compatibility
+                price: totalPrice,
+                pricePerNight: pricePerNight,
                 transactionId: storeResponse.paymentResponse.id,
                 checkInTime: '14:00 WIB',
                 checkOutTime: '12:00 WIB'

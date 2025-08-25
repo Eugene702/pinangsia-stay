@@ -8,7 +8,10 @@ import { CurrentGuestsType, CHECK_OUT } from "../action"
 import Image from "next/image"
 import { getCldImageUrl } from "next-cloudinary"
 import { formatDate } from "@/utils/moment"
+import { converToRupiah } from "@/utils/utils"
 import { showToast } from "@/utils/toast"
+import moment from "moment-timezone"
+import "moment/locale/id"
 
 const Pagination = dynamic(() => import('@/components/pagination'))
 const ConfirmationModal = dynamic(() => import('@/components/confirmationModal'))
@@ -50,11 +53,26 @@ const CheckOutTable = ({ data }: CheckOutTableProps) => {
     }
 
     const formatCurrency = (amount: bigint) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(Number(amount))
+        return converToRupiah(Number(amount))
+    }
+
+    const calculateBookingNights = (allocation: CurrentGuestsType['allocations'][number]) => {
+        const checkInDate = allocation.booking.checkInDate || allocation.booking.bookingTime
+        const checkOutDate = allocation.booking.checkOutDate
+        
+        if (!checkOutDate || !checkInDate) return 1
+        
+        const checkIn = moment(checkInDate).startOf('day')
+        const checkOut = moment(checkOutDate).startOf('day')
+        const nights = checkOut.diff(checkIn, 'days')
+        
+        return nights > 0 ? nights : 1
+    }
+
+    const calculateTotalPrice = (allocation: CurrentGuestsType['allocations'][number]) => {
+        const nights = calculateBookingNights(allocation)
+        const pricePerNight = Number(allocation.booking.roomCategory.price)
+        return pricePerNight * nights
     }
 
     const calculateStayDuration = (checkIn: Date) => {
@@ -85,77 +103,113 @@ const CheckOutTable = ({ data }: CheckOutTableProps) => {
                             <th>Foto Tamu</th>
                             <th>Info Tamu</th>
                             <th>Kamar & Kategori</th>
-                            <th>Check In</th>
+                            <th>Check In Booking</th>
+                            <th>Check Out Booking</th>
+                            <th>Durasi Booking</th>
+                            <th>Check In Aktual</th>
                             <th>Lama Menginap</th>
                             <th>Total Bayar</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {data.allocations.map((allocation, index) => (
-                            <tr key={index} className="hover">
-                                <td>
-                                    <div className="avatar">
-                                        <div className="mask mask-squircle w-16 h-16">
-                                            <Image
-                                                src={allocation.booking.user.photo ? getCldImageUrl({ src: allocation.booking.user.photo }) : "/images/logo.png"}
-                                                width={64}
-                                                height={64}
-                                                alt={`Foto ${allocation.booking.user.name}`}
-                                                className="object-cover"
-                                            />
+                        {data.allocations.map((allocation, index) => {
+                            const bookingNights = calculateBookingNights(allocation)
+                            const totalPrice = calculateTotalPrice(allocation)
+                            const checkInDate = allocation.booking.checkInDate || allocation.booking.bookingTime
+                            const checkOutDate = allocation.booking.checkOutDate
+                            
+                            return (
+                                <tr key={index} className="hover">
+                                    <td>
+                                        <div className="avatar">
+                                            <div className="mask mask-squircle w-16 h-16">
+                                                <Image
+                                                    src={allocation.booking.user.photo ? getCldImageUrl({ src: allocation.booking.user.photo }) : "/images/logo.png"}
+                                                    width={64}
+                                                    height={64}
+                                                    alt={`Foto ${allocation.booking.user.name}`}
+                                                    className="object-cover"
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div className="font-bold text-lg">{allocation.booking.user.name}</div>
-                                        <div className="text-sm opacity-70">{allocation.booking.user.email}</div>
-                                        {allocation.booking.user.telp && (
-                                            <div className="text-sm opacity-70">{allocation.booking.user.telp}</div>
-                                        )}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div className="font-bold text-primary text-xl">Kamar {allocation.room.no}</div>
-                                        <div className="text-sm opacity-70">Lantai {allocation.room.floor}</div>
-                                        <div className="badge badge-outline badge-primary mt-1">
-                                            {allocation.booking.roomCategory.name}
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <div className="font-bold text-lg">{allocation.booking.user.name}</div>
+                                            <div className="text-sm opacity-70">{allocation.booking.user.email}</div>
+                                            {allocation.booking.user.telp && (
+                                                <div className="text-sm opacity-70">{allocation.booking.user.telp}</div>
+                                            )}
                                         </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div className="text-sm">
-                                        <div className="font-semibold">{formatDate(allocation.checkIn, "DD MMM YYYY")}</div>
-                                        <div className="opacity-70">{formatDate(allocation.checkIn, "HH:mm")}</div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-info">
-                                            {calculateStayDuration(allocation.checkIn)}
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <div className="font-bold text-primary text-xl">Kamar {allocation.room.no}</div>
+                                            <div className="text-sm opacity-70">Lantai {allocation.room.floor}</div>
+                                            <div className="badge badge-outline badge-primary mt-1">
+                                                {allocation.booking.roomCategory.name}
+                                            </div>
                                         </div>
-                                        <div className="text-xs opacity-70">hari</div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div className="font-bold text-success">
-                                        {formatCurrency(allocation.booking.roomCategory.price)}
-                                    </div>
-                                    <div className="text-xs opacity-70">/malam</div>
-                                </td>
-                                <td>
-                                    <button 
-                                        className="btn btn-warning btn-sm gap-2"
-                                        onClick={() => handleOnClickCheckOut(allocation)}
-                                    >
-                                        <FaSignOutAlt className="h-3 w-3" />
-                                        Check Out
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                                    </td>
+                                    <td>
+                                        <div className="text-sm">
+                                            <div className="font-semibold">
+                                                {formatDate(checkInDate, "DD MMM YYYY")}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="text-sm">
+                                            <div className="font-semibold">
+                                                {checkOutDate 
+                                                    ? formatDate(checkOutDate, "DD MMM YYYY")
+                                                    : <span className="text-gray-500 italic">Tidak diset</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="text-center">
+                                            <span className="badge badge-primary font-bold">
+                                                {bookingNights} malam
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="text-sm">
+                                            <div className="font-semibold">{formatDate(allocation.checkIn, "DD MMM YYYY")}</div>
+                                            <div className="opacity-70">{formatDate(allocation.checkIn, "HH:mm")}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-info">
+                                                {calculateStayDuration(allocation.checkIn)}
+                                            </div>
+                                            <div className="text-xs opacity-70">hari</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="font-bold text-success">
+                                            {formatCurrency(BigInt(totalPrice))}
+                                        </div>
+                                        <div className="text-xs opacity-70">
+                                            {formatCurrency(allocation.booking.roomCategory.price)}/malam
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button 
+                                            className="btn btn-warning btn-sm gap-2"
+                                            onClick={() => handleOnClickCheckOut(allocation)}
+                                        >
+                                            <FaSignOutAlt className="h-3 w-3" />
+                                            Check Out
+                                        </button>
+                                    </td>
+                                </tr>
+                            )
+                        })}
                     </tbody>
                 </table>
             </div>

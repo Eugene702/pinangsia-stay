@@ -42,6 +42,9 @@ export type CurrentGuestsType = {
             booking: {
                 select: {
                     id: true,
+                    checkInDate: true,
+                    checkOutDate: true,
+                    bookingTime: true,
                     user: {
                         select: {
                             photo: true,
@@ -56,7 +59,6 @@ export type CurrentGuestsType = {
                             price: true
                         }
                     },
-                    bookingTime: true,
                     paidOff: true
                 }
             },
@@ -193,6 +195,9 @@ export const GET_CURRENT_GUESTS = async ({ searchParams }: { searchParams: Searc
                 booking: {
                     select: {
                         id: true,
+                        checkInDate: true,
+                        checkOutDate: true,
+                        bookingTime: true,
                         user: {
                             select: {
                                 photo: true,
@@ -207,7 +212,6 @@ export const GET_CURRENT_GUESTS = async ({ searchParams }: { searchParams: Searc
                                 price: true
                             }
                         },
-                        bookingTime: true,
                         paidOff: true
                     }
                 },
